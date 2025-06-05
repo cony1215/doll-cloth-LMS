@@ -1,0 +1,87 @@
+<!-- shared/navbar.html -->
+<style>
+  nav {
+    background-color: #ffc3b5;
+    padding: 14px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: "Noto Sans TC", sans-serif;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .nav-left {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-link {
+    margin-left: 20px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+  }
+
+  .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #fff5ef;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    padding: 10px 0;
+    border-radius: 10px;
+    min-width: 160px;
+    z-index: 10;
+  }
+
+  .dropdown-content a {
+    display: block;
+    color: #333;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+  }
+
+  .dropdown-content a:hover {
+    background-color: #ffe0d6;
+  }
+
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+</style>
+
+<nav>
+  <div class="nav-left">棉娃手作學苑</div>
+  <div class="nav-right">
+    <a href="index.html" class="nav-link">首頁</a>
+    <a href="login.html" class="nav-link" id="loginLink" style="display: inline-block;">登入 / 註冊</a>
+    <div class="dropdown" id="accountDropdown" style="display: none;">
+      <a href="#" class="nav-link" id="accountEmail">帳號</a>
+      <div class="dropdown-content">
+        <a href="#" id="dashboardLink">個人主頁</a>
+        <a href="profile.html">個人資訊</a>
+        <a href="#" id="logoutLink">登出</a>
+      </div>
+    </div>
+  </div>
+</nav>

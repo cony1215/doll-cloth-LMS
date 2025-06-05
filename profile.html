@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>個人資訊 - 棉娃手作學苑</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #fffaf6;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #ffc3b5;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      font-size: 1.5em;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #fff0e6;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .info-row {
+      margin-bottom: 20px;
+    }
+    .info-label {
+      font-weight: bold;
+      color: #444;
+    }
+    .info-value {
+      margin-left: 10px;
+    }
+    .button {
+      background-color: #ff9980;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 15px;
+      margin-top: 20px;
+    }
+    input[type="text"], input[type="date"] {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    /* 🌸 粉嫩進度條樣式 */
+    .course-item {
+      width: 90%;
+      margin: 20px auto;
+      background: linear-gradient(135deg, #ffe9e4, #fff5f2);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 6px 12px rgba(255, 195, 180, 0.3);
+      transition: transform 0.2s;
+    }
+    .course-item:hover {
+      transform: scale(1.02);
+    }
+    .course-title {
+      font-weight: bold;
+      font-size: 1.1em;
+      color: #ff6b81;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .progress-bar {
+      height: 22px;
+      background-color: #fbe9e7;
+      border-radius: 11px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #ff9aa2, #ffb6b9);
+      color: white;
+      text-align: center;
+      font-weight: bold;
+      line-height: 22px;
+      transition: width 0.6s ease;
+      border-radius: 11px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>個人資訊 - 棉娃手作學苑</header>
+  <div id="navbar-placeholder"></div>
+
+  <div class="container">
+    <div style="text-align:center; margin-bottom: 20px;">
+      <img id="avatar" src="" alt="頭貼" style="width:100px;height:100px;border-radius:50%;object-fit:cover;">
+    </div>
+    <div class="info-row"><span class="info-label">姓名：</span><span class="info-value" id="displayName">載入中...</span></div>
+    <div class="info-row"><span class="info-label">電子郵件：</span><span class="info-value" id="userEmail">載入中...</span></div>
+    <div class="info-row"><span class="info-label">生日：</span><span class="info-value" id="userBirthday">尚未填寫</span></div>
+    <div class="info-row"><span class="info-label">個性簽名：</span><span class="info-value" id="userSignature">尚未填寫</span></div>
+    <div class="info-row"><span class="info-label">角色：</span><span class="info-value" id="userRole">載入中...</span></div>
+
+    <form id="editForm" style="display:none;align-items: center;">
+      <input type="text" id="inputName" placeholder="輸入姓名">
+      <input type="date" id="inputBirthday">
+      <input type="text" id="inputSignature" placeholder="輸入個性簽名">
+      <button class="button" type="button" onclick="submitEdit()" style="grid-column: span 2; justify-self: center;">送出</button>
+    </form>
+
+    <button class="button" onclick="toggleEditForm()">編輯個資</button>
+    <button class="button" onclick="changePassword()">變更密碼</button>
+    <button class="button" onclick="logout()">登出</button>
+
+    <!-- 🌸 課程進度條 -->
+    <h3 style="text-align:center; color: #ff6b81; margin-top: 40px;">🧵 我的課程進度</h3>
+    <div id="courseProgressContainer"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms",
+      storageBucket: "doll-cloth-lms.appspot.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUser = null;
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+      currentUser = user;
+
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const data = userDoc.data();
+
+      document.getElementById("displayName").innerText = data.name || "未命名";
+      document.getElementById("userEmail").innerText = user.email;
+      document.getElementById("userRole").innerText = data.role || "未指定";
+      document.getElementById("userBirthday").innerText = data.birthday || "尚未填寫";
+      document.getElementById("userSignature").innerText = data.signature || "尚未填寫";
+
+      const avatar = document.getElementById("avatar");
+      avatar.src = data.role === "teacher" ? "img/teacher_img.png" : "img/student_img.png";
+    });
+
+    function toggleEditForm() {
+      const form = document.getElementById("editForm");
+      form.style.display = (form.style.display === "none") ? "block" : "none";
+    }
+
+    async function submitEdit() {
+      const name = document.getElementById("inputName").value;
+      const birthday = document.getElementById("inputBirthday").value;
+      const signature = document.getElementById("inputSignature").value;
+
+      const updates = { name, birthday, signature };
+      db.collection("users").doc(currentUser.uid).update(updates).then(() => {
+        alert("個資已更新！");
+        location.reload();
+      }).catch(err => alert("更新失敗：" + err.message));
+    }
+
+    function changePassword() {
+      const user = firebase.auth().currentUser;
+      if (user) {
+        firebase.auth().sendPasswordResetEmail(user.email)
+          .then(() => alert("已寄出密碼重設信至：" + user.email))
+          .catch((error) => alert("寄送失敗：" + error.message));
+      }
+    }
+
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => {
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => alert("登出失敗：" + error.message));
+    }
+
+    function goToDashboard() {
+      const user = auth.currentUser;
+      if (!user) return;
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        window.location.href = (role === "teacher") ? "teacher_dashboard.html" : "student_dashboard.html";
+      });
+    }
+
+    // 🌸 課程進度載入
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+      const uid = user.uid;
+      const container = document.getElementById("courseProgressContainer");
+
+      try {
+        const snapshot = await db.collection("progress").where("userId", "==", uid).get();
+        if (snapshot.empty) {
+          container.innerHTML = "<p style='text-align:center; color: #ff6b81;'>尚未有課程進度紀錄。</p>";
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const title = data.course;
+          const status = data.status;
+
+          let percent = 0;
+          if (status === "未開始") percent = 0;
+          else if (status === "進行中") percent = 50;
+          else if (status === "已完成") percent = 100;
+
+          const courseItem = document.createElement("div");
+          courseItem.className = "course-item";
+          courseItem.innerHTML = `
+            <div class="course-title">${title}（${status}）</div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill" style="width: ${percent}%">${percent}%</div>
+            </div>
+          `;
+          container.appendChild(courseItem);
+        });
+      } catch (err) {
+        console.error("課程進度載入失敗：", err);
+        container.innerHTML = "<p style='text-align:center; color: red;'>課程進度載入失敗</p>";
+      }
+    });
+
+    // 載入 navbar
+    fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+        auth.onAuthStateChanged((user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+  </script>
+</body>
+</html>

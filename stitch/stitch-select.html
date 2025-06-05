@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>選擇針法</title>
+  <style>
+    body {
+      background-color: #fffbe6;
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      padding-top: 100px;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    h1 {
+      color: #aa7c2b;
+    }
+
+    .mode-button {
+      margin: 20px;
+      padding: 20px 40px;
+      font-size: 20px;
+      background-color: #ffe2a8;
+      border: 2px solid #d1a562;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .mode-button:hover {
+      background-color: #fcd98c;
+    }
+
+    .fixed-button {
+      position: fixed;
+      bottom: 30px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      color: white;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    .exit-btn {
+      left: 30px;
+      background-color: #b0b0b0;
+    }
+
+    .finish-btn {
+      right: 30px;
+      background-color: #66bb6a;
+    }
+  </style>
+</head>
+<body>
+  <h1>請選擇你要練習的針法</h1>
+  <button class="mode-button" onclick="selectMode('平針縫')">平針縫</button>
+  <button class="mode-button" onclick="selectMode('回針縫')">回針縫</button>
+  <button class="mode-button" onclick="selectMode('藏針縫')">藏針縫</button>
+
+  <button class="fixed-button exit-btn" onclick="goBack()">退出課程</button>
+  <button class="fixed-button finish-btn" onclick="goNext()">完成練習</button>
+
+  <script>
+    function selectMode(mode) {
+      localStorage.setItem('stitchMode', mode);
+      window.location.href = 'stitch-game.html';
+    }
+
+    function goBack() {
+      window.location.href = '../student_dashboard.html';
+    }
+
+    function goNext() {
+      window.location.href = '../course_basic_1.html';
+    }
+  </script>
+</body>
+</html>

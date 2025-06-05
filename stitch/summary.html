@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>縫線模擬</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fffbe6;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    #clothingArea {
+      position: relative;
+      width: 300px;
+      height: 330px;
+      margin: 0 auto;
+      background: center/contain no-repeat;
+    }
+    #arrow {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: url('images/arrow.png') center/contain no-repeat;
+      display: none;
+      transform-origin: center;
+    }
+    #options {
+      margin-top: 8px;
+    }
+    button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #f98;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #feedback {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    #completeBox {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 2px solid #f98;
+      border-radius: 12px;
+      padding: 20px 30px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+    #completeBox p {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    #completeBox button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #f98;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>請選擇箭頭所指引的縫線適合什麼針法</h1>
+
+<div id="clothingArea">
+  <div id="arrow"></div>
+</div>
+
+<div id="options">
+  <button onclick="selectStitch('捲針縫')">捲針縫</button>
+  <button onclick="selectStitch('回針縫')">回針縫</button>
+  <button onclick="selectStitch('藏針縫')">藏針縫</button>
+</div>
+
+<div id="feedback"></div>
+
+<div id="completeBox">
+  <p>🎉 所有縫線完成！<br>是否返回選擇頁？</p>
+  <button onclick="goBackToChoose()">是</button>
+</div>
+
+<script>
+function getQueryParam(param) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(param);
+}
+
+// 資料定義
+const data = {
+  "T-shirt": {
+    image: "images/T-shirt.png",
+    steps: [
+      { correct: "回針縫", text: "這是肩線，使用回針縫較堅固", arrow: { top: 20, left: 200, angle: 210 } },
+      { correct: "藏針縫", text: "這是領口，使用藏針縫隱藏縫線", arrow: { top: 100, left: 118, angle: 0 } },
+      { correct: "捲針縫", text: "這是袖口與下擺折邊，使用捲針縫快速乾淨", arrow: { top: 230, left: 30, angle: 90 } }
+    ]
+  },
+  "短褲": {
+    image: "images/short.png",
+    steps: [
+      { correct: "回針縫", text: "胯下縫合，使用回針縫適合承受拉扯", arrow: { top: 150, left: 150, angle: 230 } },
+      { correct: "藏針縫", text: "腰頭接合處用藏針縫封口", arrow: { top: 0, left: 150, angle: 180 } },
+	  { correct: "捲針縫", text: "褲管下擺用捲針縫快速完成", arrow: { top: 250, left: 270, angle: 315 } },
+	  { correct: "回針縫", text: "口袋使用回針縫確保牢靠", arrow: { top: 55, left: 20, angle: 135 } }
+    ]
+  }
+};
+
+const style = getQueryParam("style") || "T-shirt";
+const steps = data[style]?.steps || data["T-shirt"].steps;
+let currentStep = 0;
+
+document.getElementById("clothingArea").style.backgroundImage = `url('${data[style]?.image || "images/T-shirt.png"}')`;
+
+function showArrow(stepIndex) {
+  const arrow = document.getElementById('arrow');
+  const step = steps[stepIndex].arrow;
+  arrow.style.top = `${step.top}px`;
+  arrow.style.left = `${step.left}px`;
+  arrow.style.transform = `rotate(${step.angle}deg)`;
+  arrow.style.display = 'block';
+}
+
+function selectStitch(choice) {
+  const feedback = document.getElementById('feedback');
+  const stepData = steps[currentStep];
+
+  if (choice === stepData.correct) {
+    feedback.textContent = `✅ 正確！${stepData.text}`;
+    currentStep++;
+    if (currentStep < steps.length) {
+      setTimeout(() => {
+        feedback.textContent = "";
+        showArrow(currentStep);
+      }, 1000);
+    } else {
+      setTimeout(() => {
+        document.getElementById("arrow").style.display = "none";
+        document.getElementById("completeBox").style.display = "block";
+      }, 1000);
+    }
+  } else {
+    feedback.textContent = "❌ 不是最佳針法，再試試！";
+  }
+}
+
+function goBackToChoose() {
+  window.location.href = "DollGame.html";
+}
+
+// 初始化
+showArrow(currentStep);
+</script>
+
+</body>
+</html>

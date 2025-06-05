@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>縫娃娃遊戲</title>
+	<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+	<div class="task-header">
+		<h2 id="stitchTitle"></h2>
+	</div>
+
+	<div class="game-container">
+		<div class="hole-row" id="topRow">
+		  <button class="hole" data-pos="A1"></button>
+		  <button class="hole" data-pos="A2"></button>
+		  <button class="hole" data-pos="A3"></button>
+		  <button class="hole" data-pos="A4"></button>
+		  <button class="hole" data-pos="A5"></button>
+		</div>
+
+		<div class="hole-row" id="bottomRow">
+		  <button class="hole" data-pos="B1"></button>
+		  <button class="hole" data-pos="B2"></button>
+		  <button class="hole" data-pos="B3"></button>
+		  <button class="hole" data-pos="B4"></button>
+		  <button class="hole" data-pos="B5"></button>
+		</div>
+	</div>
+	<svg id="stitchCanvas" class="canvas-layer"></svg>
+	<div id="logPanel" class="log-panel"></div>
+	<script src="stitch.js"></script>
+	<div id="successMessage" class="success-popup" style="display: none;">
+		<div id="successText">🎉 任務完成！你成功完成針法！</div>
+		<div class="button-group">
+			<button onclick="restartStitch()">再來一次</button>
+			<button onclick="finishStitch()">我完成了</button>
+		</div>
+	</div>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>基礎縫紉 - 課程內容</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #fffaf6;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .upload-container {
+      max-width: 800px;
+      margin: 30px auto;
+      background-color: #ffece2;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .upload-container input,
+    .upload-container textarea {
+      margin: 10px 0;
+      padding: 10px;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .upload-container textarea {
+      height: 80px;
+    }
+    .upload-container button {
+      padding: 10px 20px;
+      background-color: #ff9980;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .description {
+      max-width: 800px;
+      margin: 20px auto;
+      background-color: #fff0e6;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #ff9980;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+  <h2>娃衣打版</h2>
+
+  <!-- 上傳作品表單 -->
+  <div class="upload-container">
+    <h3>上傳您的娃衣作品</h3>
+    <form onsubmit="return uploadWork()" enctype="multipart/form-data">
+      <input type="text" id="title" placeholder="作品名稱" required><br>
+      <input type="file" id="image" accept="image/*" required><br>
+      <textarea id="description" placeholder="作品說明"></textarea><br>
+      <button type="submit">上傳</button>
+    </form>
+  </div>
+
+  <!-- 課程簡介 -->
+  <div class="description">
+    <h3>針法模擬練習簡介</h3>
+    <p>
+      總共會有三種基礎針法，平針縫、回針縫和藏針縫，請透過滑鼠點擊畫面中的圓圈和前後選項完成針法練習。
+    </p>
+  </div>
+
+  <!-- 上一步、下一步 -->
+  <div class="button-group">
+    <button onclick="goBack()">上一步</button>
+    <button onclick="goNext()">完成課程</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function goBack() {
+      window.location.href = "course_cloth_1.html";
+    }
+
+    function goNext() {
+        const user = auth.currentUser;
+        if (!user) {
+            alert("請先登入再完成課程");
+            return;
+        }
+
+        alert("✅ 恭喜你已完成基礎娃衣打版課程！");
+        window.location.href = "student_dashboard.html";
+    }
+
+    fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
+
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => {
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          alert("登出失敗，請稍後再試。" + error.message);
+        });
+    }
+
+    function goToDashboard() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        if (role === "teacher") {
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          window.location.href = "student_dashboard.html";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

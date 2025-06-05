@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>娃衣打版點陣遊戲</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #fffbe6;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #grid {
+      position: relative;
+      width: 300px;
+      height: 420px;
+      margin: 5px auto;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #444;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+    }
+    .dot.start {
+      background: #aaa;
+      box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+    #controls {
+      margin-top: 1px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    button {
+      background-color: #ffb347;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #ff9447;
+    }
+    #resultBox {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      z-index: 1000;
+    }
+    #stepTitle {
+      margin: 10px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+	#rulesBox {
+	  position: fixed;
+	  bottom: 10px;
+	  left: 10px;
+	  background: rgba(255, 255, 255, 0.95);
+	  border: 1px solid #ccc;
+	  padding: 10px 14px;
+	  border-radius: 8px;
+	  font-size: 14px;
+	  color: #333;
+	  box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+	  z-index: 999;
+	}
+	#resultBox button {
+	  margin-top: 20px;
+	  height: 40px;
+	}
+  </style>
+</head>
+<body>
+<h2 id="stepTitle">載入中...</h2>
+<div id="grid"></div>
+<div id="controls">
+  <button onclick="clearLines()">清除</button>
+  <button onclick="checkPattern()">完成</button>
+</div>
+<div id="resultBox"></div>
+<div id="rulesBox">
+  <strong>遊戲規則</strong><br>
+  點擊灰色起點開始，依序連線，最後回到起點後按「完成」。<br>
+  每條線中間不可穿過點。
+</div>
+
+<script>
+const grid = document.getElementById('grid');
+const stepTitle = document.getElementById('stepTitle');
+const cols = 5, rows = 7;
+const spacingX = 60;
+const spacingY = 60;
+const dotRadius = 6;
+const dots = [];
+let path = [], startIndex = 5, currentStep = 0;
+
+const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+svg.setAttribute("width", "300");
+svg.setAttribute("height", "420");
+grid.appendChild(svg);
+
+for (let y = 0; y < rows; y++) {
+  for (let x = 0; x < cols; x++) {
+    const index = y * cols + x;
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dot.style.left = `${x * spacingX + spacingX / 2}px`;
+    dot.style.top = `${y * spacingY + spacingY / 2}px`;
+    dot.dataset.index = index;
+    dot.addEventListener('click', onDotClick);
+    grid.appendChild(dot);
+    dots.push(dot);
+  }
+}
+
+const answers = {
+  "T-shirt": [
+    { title: "前片", answer: [5, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5] },
+    { title: "後片", answer: [5, 0 , 1, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5] },
+    { title: "袖片", answer: [2, 9, 23, 22, 21, 5, 2] }
+  ],
+  "短褲": [
+    { title: "前片", answer: [0, 1, 2, 3, 8, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5, 0] },
+    { title: "後片", answer: [2, 3, 4, 9, 14, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 12, 7, 2] }
+  ]
+};
+
+const selectedStyle = localStorage.getItem('selectedStyle') || 'T-shirt';
+const steps = answers[selectedStyle] || answers['T-shirt'];
+
+function loadStep(index) {
+  const step = steps[index];
+  path = [];
+  svg.innerHTML = '';
+  dots.forEach(d => d.classList.remove('start'));
+  if (step.answer.length > 0) {
+    dots[step.answer[0]].classList.add('start');
+    startIndex = step.answer[0];
+  }
+  stepTitle.textContent = `目前打版部位：${step.title}`;
+}
+
+function onDotClick(e) {
+  const idx = parseInt(e.target.dataset.index);
+  if (path.length > 0 && idx === path[0] && path.length > 2) {
+    path.push(idx);
+    drawLines();
+    return;
+  }
+  if (path.includes(idx)) return;
+  path.push(idx);
+  drawLines();
+}
+
+function drawLines() {
+  svg.innerHTML = '';
+  for (let i = 0; i < path.length - 1; i++) {
+    const from = dots[path[i]].getBoundingClientRect();
+    const to = dots[path[i + 1]].getBoundingClientRect();
+    const gridRect = grid.getBoundingClientRect();
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", from.left + 6 - gridRect.left);
+    line.setAttribute("y1", from.top + 6 - gridRect.top);
+    line.setAttribute("x2", to.left + 6 - gridRect.left);
+    line.setAttribute("y2", to.top + 6 - gridRect.top);
+    line.setAttribute("stroke", "#f66");
+    line.setAttribute("stroke-width", "3");
+    svg.appendChild(line);
+  }
+}
+
+function clearLines() {
+  path = [];
+  svg.innerHTML = '';
+  document.getElementById('resultBox').style.display = 'none';
+}
+
+function checkPattern() {
+  const resultBox = document.getElementById('resultBox');
+  const currentAnswer = steps[currentStep].answer;
+  const correct = arraysEqual(path, currentAnswer) || arraysEqual(path, currentAnswer.slice().reverse());
+
+  if (correct) {
+    currentStep++;
+    if (currentStep < steps.length) {
+      resultBox.innerHTML = `✅ ${steps[currentStep - 1].title} 完成！<br><button onclick="startNextPart()">下一步</button>`;
+    } else {
+      resultBox.innerHTML = `✅ 所有版型完成！<br><button onclick="goToSewing()">前往縫線模擬</button>`;
+    }
+  } else {
+    resultBox.innerHTML = '❌ 路徑錯誤，請重試';
+  }
+  resultBox.style.display = 'block';
+}
+
+function startNextPart() {
+  document.getElementById('resultBox').style.display = 'none';
+  loadStep(currentStep);
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((v, i) => v === b[i]);
+}
+
+function goToSewing() {
+  window.location.href = `summary.html?style=${selectedStyle}`;
+}
+
+loadStep(currentStep);
+</script>
+</body>
+</html>

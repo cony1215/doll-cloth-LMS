@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>基礎縫紉 - 課程內容</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #fffaf6;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .stitch-container {
+      max-width: 800px;
+      margin: 30px auto;
+      background-color: #fff0e6;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .stitch-container h3 {
+      margin-bottom: 20px;
+    }
+    .mode-button {
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 18px;
+      background-color: #ffe2a8;
+      border: 2px solid #d1a562;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .mode-button:hover {
+      background-color: #fcd98c;
+    }
+    .description {
+      max-width: 800px;
+      margin: 20px auto;
+      background-color: #fff0e6;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #ff9980;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+  <h2>基礎縫紉</h2>
+
+  <div class="stitch-container">
+  <h3>開始模擬針法練習</h3>
+  <button class="mode-button" onclick="window.location.href='stitch/stitch-select.html'">
+    進入模擬針法練習
+  </button>
+</div>
+
+  <div class="description">
+    <h3>針法模擬練習簡介</h3>
+    <p>
+      總共會有三種基礎針法，平針縫、回針縫和藏針縫，請透過滑鼠點擊畫面中的圓圈和前後選項完成針法練習。
+    </p>
+  </div>
+
+  <div class="button-group">
+    <button onclick="goBack()">上一步</button>
+    <button onclick="goNext()">下一步</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function goBack() {
+      window.location.href = "course_basic.html";
+    }
+
+    function goNext() {
+      window.location.href = "course_cutting.html";
+    }
+
+    function selectMode(mode) {
+      localStorage.setItem('stitchMode', mode);
+      window.location.href = 'stitch-game.html';
+    }
+
+    fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
+
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => {
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          alert("登出失敗，請稍後再試。" + error.message);
+        });
+    }
+
+    function goToDashboard() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        if (role === "teacher") {
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          window.location.href = "student_dashboard.html";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

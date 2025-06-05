@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>老師後台 - 棉娃手作學苑</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #fffaf2;
+      padding: 20px;
+    }
+    header {
+      background-color: #ffc3b5;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .section-title {
+      margin-top: 30px;
+      font-size: 1.3em;
+      text-align: center;
+    }
+    .student-list {
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    .student-card {
+      background-color: #fff0ea;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      box-shadow: 1px 1px 6px #ccc;
+      transition: 0.2s;
+    }
+    .student-card:hover {
+      background-color: #ffe1d6;
+    }
+    .progress-card {
+      background-color: #fff4ed;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin: 8px 20px;
+    }
+    .nav-link {
+      margin-right: 10px;
+      text-decoration: none;
+      color: #5a2a19;
+      font-weight: bold;
+    }
+    .nav-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>老師後台 - 棉娃手作學苑</header>
+  <div id="navbar-placeholder"></div>
+
+  <div class="section-title">學生清單（點擊查看／收合進度）</div>
+  <div class="student-list" id="studentList">載入中...</div>
+
+  <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+    authDomain: "doll-cloth-lms.firebaseapp.com",
+    projectId: "doll-cloth-lms"
+  };
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      alert("請先登入！");
+      window.location.href = "login.html";
+      return;
+    }
+
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== "teacher") {
+      alert("您沒有權限進入此頁面！");
+      window.location.href = "login.html";
+      return;
+    }
+
+    loadStudentList();
+  });
+
+  async function loadStudentList() {
+    const studentListDiv = document.getElementById("studentList");
+    studentListDiv.innerHTML = "";
+
+    const studentsSnap = await db.collection("users").where("role", "==", "student").get();
+    if (studentsSnap.empty) {
+      studentListDiv.innerHTML = "<p>尚無學生資料。</p>";
+      return;
+    }
+
+    studentsSnap.forEach(doc => {
+      const data = doc.data();
+      const wrapper = document.createElement("div");
+      const studentDiv = document.createElement("div");
+      studentDiv.className = "student-card";
+      studentDiv.innerText = data.email;
+      const progressDiv = document.createElement("div");
+      progressDiv.style.display = "none";
+
+      studentDiv.onclick = async () => {
+        if (progressDiv.style.display === "none") {
+          progressDiv.innerHTML = "<p style='margin-left:20px;'>載入中...</p>";
+          progressDiv.style.display = "block";
+          const progressSnap = await db.collection("progress").where("email", "==", data.email).get();
+
+          if (progressSnap.empty) {
+            progressDiv.innerHTML = "<p style='margin-left:20px;'>尚未有進度紀錄。</p>";
+            return;
+          }
+
+          progressDiv.innerHTML = "";
+          progressSnap.forEach(doc => {
+            const d = doc.data();
+            const item = document.createElement("div");
+            item.className = "progress-card";
+            item.innerHTML = `
+              <div><strong>課程：</strong>${d.course}</div>
+              <div><strong>狀態：</strong>${d.status}</div>
+              <div><strong>最後操作：</strong>${d.lastAccess?.toDate().toLocaleString() || "未知"}</div>
+            `;
+            progressDiv.appendChild(item);
+          });
+        } else {
+          progressDiv.style.display = "none";
+        }
+      };
+
+      wrapper.appendChild(studentDiv);
+      wrapper.appendChild(progressDiv);
+      studentListDiv.appendChild(wrapper);
+    });
+  }
+
+  fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) {
+              logoutLink.onclick = () => logout();
+            }
+
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) {
+              dashboardLink.onclick = () => goToDashboard();
+            }
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => {
+          console.log("✅ 使用者已登出");
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          console.error("登出失敗：", error);
+          alert("登出失敗，請稍後再試。");
+        });
+    }
+
+    function goToDashboard() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        if (role === "teacher") {
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          window.location.href = "student_dashboard.html";
+        }
+      });
+    }
+</script>
+
+</body>
+</html>

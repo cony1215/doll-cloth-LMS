@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>棉娃手作學苑</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fffaf6;
+      color: #444;
+    }
+
+    header {
+      background-color: #ffc3b5;
+      text-align: center;
+      padding: 40px 20px 20px;
+    }
+
+    header h1 {
+      font-size: 2.4em;
+      margin: 10px 0 5px;
+      color: #5a3e36;
+    }
+
+    header p {
+      font-size: 1.2em;
+      margin: 10px 0 20px;
+      color: #7c5e54;
+    }
+
+    .button {
+      padding: 12px 24px;
+      background-color: #ff9980;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      margin: 5px;
+      display: inline-block;
+      font-weight: bold;
+    }
+
+    .section-title {
+      font-size: 1.8em;
+      margin-bottom: 30px;
+      text-align: center;
+      color: #4a3b38;
+    }
+
+    section {
+      padding: 50px 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 30px;
+      text-align: center;
+    }
+
+    .grid-item {
+      background-color: #fff0e8;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+    }
+
+    .grid-item:hover {
+      transform: scale(1.03);
+    }
+
+    .grid img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    }
+
+
+    .carousel {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .carousel img {
+      width: 200px;
+      height: 200px;
+      border-radius: 12px;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    footer {
+      background-color: #f2e7df;
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9em;
+      color: #6b554c;
+    }
+    
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <header>
+    <img src="img/index_hero_img.jpg" alt="主視覺圖片" style="height: 360px; width: auto; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <h1>開始您的棉娃手作之旅</h1>
+    <p>學會縫製可愛的娃娃衣服，感受手作的溫度</p>
+  </header>
+
+  <section id="courses">
+    <h2 class="section-title">課程概覽</h2>
+    <div class="grid">
+      <div class="grid-item">
+        <img src="img/stitch.png" alt="基礎縫紉">
+        <p>基礎縫紉</p>
+      </div>
+      <div class="grid-item">
+        <img src="img/produce.png" alt="衣型裁剪">
+        <p>衣型裁剪</p>
+      </div>
+      <div class="grid-item">
+        <img src="img/make.png" alt="製作上衣">
+        <p>製作上衣</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">如何開始？</h2>
+    <div class="grid">
+      <div class="grid-item">
+        <img src="img/singup.png" alt="註冊帳號">
+        <p>註冊帳號</p>
+      </div>
+      <div class="grid-item">
+        <img src="img/select.png" alt="挑選課程">
+        <p>挑選課程</p>
+      </div>
+      <div class="grid-item">
+        <img src="img/upload.png" alt="上傳作品">
+        <p>上傳作品</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">娃娃衣作品欣賞</h2>
+    <div class="carousel">
+      <img src="img/cloth_1.png" alt="作品1">
+      <img src="img/cloth_2.png" alt="作品2">
+      <img src="img/cloth_3.png" alt="作品3">
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2025 棉娃手作學苑 ｜ 聯絡我們 ｜ IG｜YouTube｜LINE
+  </footer>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
+
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+
+    function logout() {
+      auth.signOut()
+        .then(() => {
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          alert("登出失敗，請稍後再試。" + error.message);
+        });
+    }
+
+    function goToDashboard() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        if (role === "teacher") {
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          window.location.href = "student_dashboard.html";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

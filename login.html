@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>登入 - 棉娃手作學苑</title>
+
+  <!-- 字體：JF 粉圓 + Gen Jyuu Gothic -->
+  <link href="https://fonts.googleapis.com/css2?family=JF+Open+Huninn&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/ButTaiwan/gen-jyuu-gothic/webfont/GenJyuuGothic-Medium/GenJyuuGothic-Medium.css" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+  <!-- 🎨 美化樣式 -->
+  <style>
+    body {
+      font-family: 'JF Open Huninn', 'Gen Jyuu Gothic Medium', sans-serif;
+      background: linear-gradient(to bottom right, #fffaf6, #ffeae1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      flex-direction: column;
+    }
+
+    form {
+      background-color: #fff0ea;
+      padding: 40px 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      text-align: center;
+      width: 320px;
+      transition: opacity 0.5s ease;
+    }
+    h1 {
+      color: #5a3e36;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #5a3e36;
+    }
+
+    .logo {
+      width: 120px;
+    }
+
+    input {
+      margin: 12px 0;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 1em;
+      transition: border 0.2s;
+    }
+
+    input:focus {
+      border: 1px solid #ff9980;
+      outline: none;
+    }
+
+    .password-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .toggle-eye {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      opacity: 0.6;
+    }
+
+    .toggle-eye:hover {
+      opacity: 1;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 0;
+      width: 100%;
+      background-color: #ff9980;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #ff7f66;
+    }
+
+    .link {
+      display: block;
+      margin-top: 12px;
+      font-size: 0.9em;
+      color: #805750;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .link:hover {
+      color: #a86c5c;
+    }
+
+    /* ✅ 登入成功動畫效果 */
+    #login-form.fade-out {
+      animation: fadeOut 0.6s forwards;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+
+    #success-message {
+      display: none;
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #ff7a5c;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <form id="login-form" onsubmit="return loginUser()">
+    <img src="img/logo.png" alt="棉娃手作學苑 Logo" class="logo" style="width: 100px;">
+    <h1>會員登入</h1>
+    
+    <input type="email" id="email" placeholder="電子信箱" required><br>
+
+    <div class="password-container">
+      <input type="password" id="password" placeholder="密碼" required>
+      <img id="eyeIcon" src="https://cdn-icons-png.flaticon.com/512/709/709612.png" alt="切換密碼顯示" class="toggle-eye" onclick="togglePassword()">
+    </div><br>
+
+    <button type="submit">登入</button>
+    <a class="link" onclick="resetPassword()">忘記密碼？</a>
+  </form>
+
+  <div id="success-message">登入成功，正在前往學苑...</div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms",
+      storageBucket: "doll-cloth-lms.appspot.com",
+      messagingSenderId: "754723509286",
+      appId: "1:754723509286:web:081f64a1d62f8f036882e7",
+      measurementId: "G-3TRXE5HVS7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function loginUser() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then(async (userCredential) => {
+          const uid = userCredential.user.uid;
+          const userDoc = await db.collection("users").doc(uid).get();
+          if (!userDoc.exists) {
+            alert("查無此使用者資料！");
+            return;
+          }
+
+          const role = userDoc.data().role;
+
+          // ✅ 加入動畫與提示
+          document.getElementById("login-form").classList.add("fade-out");
+          document.getElementById("success-message").style.display = "block";
+
+          setTimeout(async () => {
+            if (role === "student") {
+              const progressRef = db.collection("progress");
+              const existingProgress = await progressRef.where("userId", "==", uid).get();
+
+              if (existingProgress.empty) {
+                const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                const initialCourses = [
+                  { course: "基礎縫紉", status: "未開始" },
+                  { course: "娃衣打版", status: "未開始" }
+                ];
+                const batch = db.batch();
+                initialCourses.forEach((item) => {
+                  const docRef = progressRef.doc();
+                  batch.set(docRef, {
+                    userId: uid,
+                    course: item.course,
+                    status: item.status,
+                    lastAccess: timestamp
+                  });
+                });
+                await batch.commit();
+              }
+              window.location.href = "student_dashboard.html";
+
+            } else if (role === "teacher") {
+              window.location.href = "teacher_dashboard.html";
+            } else {
+              alert("未知角色，請聯絡管理員");
+            }
+          }, 800); // 給動畫時間
+        })
+        .catch((error) => {
+          alert("登入失敗：" + error.message);
+        });
+
+      return false;
+    }
+
+    function togglePassword() {
+      const passwordInput = document.getElementById("password");
+      const eyeIcon = document.getElementById("eyeIcon");
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.src = "https://cdn-icons-png.flaticon.com/512/159/159604.png";
+      } else {
+        passwordInput.type = "password";
+        eyeIcon.src = "https://cdn-icons-png.flaticon.com/512/709/709612.png";
+      }
+    }
+
+    function resetPassword() {
+      const email = document.getElementById("email").value;
+      if (!email) {
+        alert("請先輸入電子信箱，才能重設密碼。");
+        return;
+      }
+
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          alert("重設密碼信已寄出，請至信箱查收。");
+        })
+        .catch((error) => {
+          alert("寄送失敗：" + error.message);
+        });
+    }
+  </script>
+</body>
+</html>

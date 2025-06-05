@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>學生主頁</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+   @import url('https://fonts.googleapis.com/css2?family=JF+Open+Huninn&display=swap');
+
+    body {
+      font-family: 'JF Open Huninn', 'Noto Sans TC', sans-serif;
+      /* background: linear-gradient(to bottom right, #fffaf6, #ffeae1); */
+      background-color:#ffc3b5;
+      padding: 40px;
+      margin: 0;
+    }
+
+    header{
+       color:#ffc3b5;
+    }
+    h2 {
+      text-align: center;
+      font-size: 2em;
+      color: #5a3e36;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background-color: #fff0ea;
+      padding: 30px 25px;
+      margin: 20px auto;
+      border-radius: 20px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+    }
+
+    .card h3 {
+      margin-bottom: 20px;
+      color: #a75f4a;
+      font-size: 1.3em;
+    }
+
+    button {
+      margin: 8px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #ff9980;
+      color: white;
+      font-size: 1em;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #ff7a62;
+    }
+
+    button.done {
+      background-color: #7fcf94;
+    }
+
+    button.done:hover {
+      background-color: #66bb6a;
+    }
+
+    p.time {
+      margin-top: 12px;
+      font-size: 0.85em;
+      color: #6e4a3c;
+    }
+
+    .course-icon {
+      width: 60px;
+      margin-bottom: 12px;
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+  <div id="navbar-placeholder"></div>
+  </header>
+  <h2>課程總覽</h2>
+
+  <div class="card">
+    <img src="img/ball.png" alt="縫紉圖示" class="course-icon">
+    <h3>基礎縫紉</h3>
+    <button onclick="startCourse('基礎縫紉', 'basic')">開始學習</button>
+    <button class="done" onclick="markCompleted('基礎縫紉')">我學完了</button>
+    <p id="access-基礎縫紉" class="time"></p>
+  </div>
+
+  <div class="card">
+    <img src="img/ball.png" alt="縫紉圖示" class="course-icon">
+    <h3>製作衣服</h3>
+    <button onclick="startCourse('製作上衣', 'cloth')">開始學習</button>
+    <button class="done" onclick="markCompleted('製作上衣')">我學完了</button>
+    <p id="access-製作上衣" class="time"></p>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+
+      db.collection("progress").where("userId", "==", user.uid).get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const course = data.course;
+          const accessTime = data.lastAccess?.toDate();
+          const accessEl = document.getElementById(`access-${course}`);
+          if (accessEl && accessTime)
+            accessEl.textContent = `最後觀看時間：${accessTime.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}`;
+        });
+      });
+    });
+
+    function startCourse(courseName, courseId) {
+      const user = auth.currentUser;
+      if (!user) return alert("請先登入");
+
+      db.collection("progress")
+        .where("userId", "==", user.uid)
+        .where("course", "==", courseName)
+        .get()
+        .then((querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            doc.ref.update({
+              lastAccess: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          });
+          window.location.href = `course_${courseId}.html`;
+        });
+    }
+
+    function markCompleted(courseName) {
+      const user = auth.currentUser;
+      if (!user) return alert("請先登入");
+
+      db.collection("progress")
+        .where("userId", "==", user.uid)
+        .where("course", "==", courseName)
+        .get()
+        .then((querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            doc.ref.update({
+              status: "已完成",
+              lastAccess: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          });
+          alert(`${courseName} 已標記為已完成`);
+        });
+    }
+
+    fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
+
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => {
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          alert("登出失敗，請稍後再試。" + error.message);
+        });
+    }
+
+    function goToDashboard() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        if (role === "teacher") {
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          window.location.href = "student_dashboard.html";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

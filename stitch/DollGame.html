@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>娃衣款式選擇</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #fef8f3;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    .style-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    .style-card {
+      width: 180px;
+      height: 220px;
+      border: 3px solid transparent;
+      border-radius: 12px;
+      background-color: #fff8f0;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      padding: 10px;
+    }
+    .style-card:hover {
+      transform: scale(1.03);
+      box-shadow: 2px 2px 12px rgba(0,0,0,0.2);
+    }
+    .style-card.selected {
+      border: 3px solid #ff8c42;
+      background-color: #fff0e0;
+    }
+    .style-name {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    #selectedStyle {
+      margin-top: 30px;
+      font-size: 20px;
+    }
+    #nextBtn {
+      margin-top: 20px;
+      padding: 10px 25px;
+      font-size: 16px;
+      background-color: #ff8c42;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #nextBtn:hover {
+      background-color: #e6752f;
+    }
+	.short {
+	  margin-top: 43px; /* 根據需要調整數值 */
+	}
+  </style>
+</head>
+<body>
+
+  <h1>請選擇你要縫製的款式</h1>
+
+  <div class="style-container">
+    <div class="style-card" data-style="T-shirt">
+      <img src="images/T-shirt.png" width="180" alt="T-shirt">
+      <div class="style-name">T-shirt</div>
+    </div>
+    <div class="style-card" data-style="短褲">
+      <img src="images/short.png" width="130" alt="短褲" class="short">
+      <div class="style-name">短褲</div>
+    </div>
+  </div>
+
+  <div id="selectedStyle">尚未選擇款式</div>
+  <button id="nextBtn" onclick="goToNextStep()" disabled>下一步 →</button>
+
+  <script>
+    const cards = document.querySelectorAll('.style-card');
+    const selectedStyleText = document.getElementById('selectedStyle');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let selectedStyle = "";
+
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        cards.forEach(c => c.classList.remove('selected')); // 取消其他選擇
+        card.classList.add('selected');
+        selectedStyle = card.dataset.style;
+        selectedStyleText.textContent = `你選擇的款式是：${selectedStyle}`;
+        nextBtn.disabled = false;
+      });
+    });
+
+    function goToNextStep() {
+		localStorage.setItem("selectedStyle", selectedStyle); // 儲存款式
+		window.location.href = 'CheckChoose.html'; // 跳轉打版頁面
+	}
+  </script>
+
+</body>
+</html>
