@@ -58,7 +58,7 @@
   </style>
 </head>
 <body>
-  <header>老師後台 - 棉娃手作學苑</header>
+  <header>老師主頁 - 棉娃手作學苑</header>
   <div id="navbar-placeholder"></div>
 
   <div class="section-title">學生清單（點擊查看／收合進度）</div>
@@ -208,6 +208,27 @@
         }
       });
     }
+
+    // 🔗 加入跳轉至作品頁的按鈕
+    const viewWorksBtn = document.createElement("button");
+    viewWorksBtn.innerText = "📸 查看所有學生作品";
+    viewWorksBtn.style.cssText = `
+      display: block;
+      margin: 30px auto 0;
+      padding: 12px 24px;
+      background-color: #ff9980;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    `;
+    viewWorksBtn.onclick = () => {
+      window.location.href = "teacher_work.html";
+    };
+    document.body.appendChild(viewWorksBtn);
+
 </script>
 
 </body>

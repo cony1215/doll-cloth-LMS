@@ -127,12 +127,44 @@
     }
 
     #success-message {
-      display: none;
-      margin-top: 20px;
-      font-size: 1.1em;
-      color: #ff7a5c;
-      font-weight: bold;
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.1em;
+  color: #ff7a5c;
+  font-weight: bold;
+  text-align: center;
+  z-index: 1000; /* 確保在最上層 */
+}
+
+
+    .paw-progress {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
     }
+
+    .paw {
+      width: 36px;
+      opacity: 0;
+      animation: pawIn 0.4s ease forwards;
+      animation-delay: calc(var(--i) * 0.4s);
+    }
+
+    @keyframes pawIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
   </style>
 </head>
 
@@ -152,7 +184,16 @@
     <a class="link" onclick="resetPassword()">忘記密碼？</a>
   </form>
 
-  <div id="success-message">登入成功，正在前往學苑...</div>
+  <div id="success-message">
+    <p>登入成功，正在前往學苑...</p>
+    <div class="paw-progress">
+      <img src="img/paw.png" class="paw" style="--i:0;">
+      <img src="img/paw.png" class="paw" style="--i:1;">
+      <img src="img/paw.png" class="paw" style="--i:2;">
+      <img src="img/paw.png" class="paw" style="--i:3;">
+      <img src="img/paw.png" class="paw" style="--i:4;">
+    </div>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -217,7 +258,7 @@
             } else {
               alert("未知角色，請聯絡管理員");
             }
-          }, 800); // 給動畫時間
+          }, 2200); // 給動畫時間
         })
         .catch((error) => {
           alert("登入失敗：" + error.message);

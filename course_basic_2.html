@@ -73,18 +73,17 @@
   <div id="navbar-placeholder"></div>
   <h2>基礎縫紉</h2>
 
-  <!-- 上傳作品表單 -->
   <div class="upload-container">
     <h3>上傳您的縫紉練習作品</h3>
-    <form onsubmit="return uploadWork()" enctype="multipart/form-data">
+    <form id="uploadForm" enctype="multipart/form-data">
       <input type="text" id="title" placeholder="作品名稱" required><br>
       <input type="file" id="image" accept="image/*" required><br>
       <textarea id="description" placeholder="作品說明"></textarea><br>
       <button type="submit">上傳</button>
     </form>
+    <img id="previewImage" style="max-width: 300px; display: none; margin-top: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
 
-  <!-- 課程簡介 -->
   <div class="description">
     <h3>針法模擬練習簡介</h3>
     <p>
@@ -92,7 +91,6 @@
     </p>
   </div>
 
-  <!-- 上一步、下一步 -->
   <div class="button-group">
     <button onclick="goBack()">上一步</button>
     <button onclick="goNext()">完成課程</button>
@@ -115,22 +113,20 @@
     }
 
     function goNext() {
-        const user = auth.currentUser;
-        if (!user) {
-            alert("請先登入再完成課程");
-            return;
-        }
-
-        alert("✅ 恭喜你已完成基礎縫紉課程！");
-        window.location.href = "student_dashboard.html";
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入再完成課程");
+        return;
+      }
+      alert("✅ 恭喜你已完成基礎縫紉課程！");
+      window.location.href = "student_dashboard.html";
     }
 
     fetch("shared/navbar.html")
       .then(res => res.text())
       .then(html => {
         document.getElementById("navbar-placeholder").innerHTML = html;
-
-        auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged((user) => {
           const loginLink = document.getElementById("loginLink");
           const dropdown = document.getElementById("accountDropdown");
           const accountEmail = document.getElementById("accountEmail");
@@ -159,7 +155,7 @@
           window.location.href = "login.html";
         })
         .catch((error) => {
-          alert("登出失敗，請稍後再試。" + error.message);
+          alert("登出失敗：" + error.message);
         });
     }
 
@@ -178,6 +174,62 @@
           window.location.href = "student_dashboard.html";
         }
       });
+    }
+
+    // ✅ 改用 JavaScript 綁定 form submit
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("uploadForm");
+      form.addEventListener("submit", uploadWork);
+    });
+
+    // ✅ 上傳圖片至 Cloudinary 並存進 Firestore
+    async function uploadWork(e) {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入才能上傳作品");
+        return;
+      }
+
+      const file = document.getElementById("image").files[0];
+      const title = document.getElementById("title").value.trim();
+      const description = document.getElementById("description").value.trim();
+
+      if (!file || !title) {
+        alert("請填寫所有欄位");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "demo_stu");
+
+      try {
+        const res = await fetch("https://api.cloudinary.com/v1_1/da77gowqh/image/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        const imageUrl = data.secure_url;
+
+        document.getElementById("previewImage").src = imageUrl;
+        document.getElementById("previewImage").style.display = "block";
+
+        await db.collection("works").add({
+          userId: user.uid,
+          title,
+          description,
+          imageUrl,
+          createdAt: firebase.firestore.Timestamp.fromDate(new Date())
+        });
+
+        alert("✅ 作品已成功上傳並儲存！");
+        document.getElementById("uploadForm").reset();
+      } catch (err) {
+        console.error(err);
+        alert("❌ 上傳過程發生錯誤");
+      }
     }
   </script>
 </body>

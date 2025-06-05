@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>所有學生作品</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background-color: #fffaf6;
+      padding: 30px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    #worksContainer {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+    .work-card {
+      background-color: #fff0e6;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .work-card img {
+      max-width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+    .meta {
+      font-size: 0.8em;
+      color: #777;
+      margin-bottom: 8px;
+    }
+    .title {
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .work-card a, .work-card button {
+      margin-top: 8px;
+      margin-right: 6px;
+      display: inline-block;
+      background-color: #ff9980;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9em;
+      border: none;
+      cursor: pointer;
+    }
+    .work-card a:last-child {
+      background-color: #ffa87d;
+    }
+    .work-card button {
+      background-color: #e86868;
+    }
+  </style>
+</head>
+<body>
+  <h2>🧵 學生作品總覽</h2>
+  <div id="worksContainer"></div>
+  
+  <div style="text-align: center; margin-bottom: 30px;">
+  <a href="teacher_dashboard.html"
+     style="display: inline-block; background-color: #b2866b; color: white; padding: 10px 20px;
+            border-radius: 8px; text-decoration: none; font-weight: bold;">
+    返回老師主頁
+  </a>
+</div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const userEmailMap = {};
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      if (userDoc.data().role !== "teacher") {
+        alert("只有老師能查看此頁面");
+        window.location.href = "student_dashboard.html";
+        return;
+      }
+
+      const snapshot = await db.collection("works").orderBy("createdAt", "desc").get();
+      const container = document.getElementById("worksContainer");
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const workId = doc.id;
+        const userId = data.userId;
+
+        if (!userEmailMap[userId]) {
+          try {
+            const userSnap = await db.collection("users").doc(userId).get();
+            const email = userSnap.exists ? userSnap.data().email : "未知使用者";
+            userEmailMap[userId] = email;
+          } catch {
+            userEmailMap[userId] = "查詢失敗";
+          }
+        }
+
+        const card = document.createElement("div");
+        card.className = "work-card";
+        card.innerHTML = `
+          <div class="meta">👤 ${userEmailMap[userId]}<br>🕒 ${data.createdAt?.toDate().toLocaleString() || "無"}</div>
+          <div class="title">${data.title}</div>
+          <p>${data.description || "（無說明）"}</p>
+          <img src="${data.imageUrl}" alt="作品圖片">
+          <div>
+            <a href="${data.imageUrl}" target="_blank">🔍 查看原圖</a>
+            <a href="${data.imageUrl}" download target="_blank">⬇️ 下載圖片</a>
+            <button onclick="deleteWork('${workId}')">🗑️ 刪除作品</button>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    });
+
+    // ✅ 刪除 Firestore 中的作品 document
+    async function deleteWork(workId) {
+      if (!confirm("你確定要刪除此作品嗎？此操作無法復原")) return;
+
+      try {
+        await db.collection("works").doc(workId).delete();
+        alert("✅ 已刪除作品");
+        location.reload();
+      } catch (err) {
+        console.error("❌ 刪除失敗", err);
+        alert("刪除作品時發生錯誤");
+      }
+    }
+  </script>
+</body>
+</html>
