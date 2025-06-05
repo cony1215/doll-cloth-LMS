@@ -68,19 +68,29 @@
     .work-card button {
       background-color: #e86868;
     }
+    .back-btn {
+      display: inline-block;
+      background-color: #b2866b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 40px;
+    }
+    .back-container {
+      text-align: center;
+      margin-top: 30px;
+    }
   </style>
 </head>
 <body>
   <h2>🧵 學生作品總覽</h2>
   <div id="worksContainer"></div>
-  
-  <div style="text-align: center; margin-bottom: 30px;">
-  <a href="teacher_dashboard.html"
-     style="display: inline-block; background-color: #b2866b; color: white; padding: 10px 20px;
-            border-radius: 8px; text-decoration: none; font-weight: bold;">
-    返回老師主頁
-  </a>
-</div>
+
+  <div class="back-container">
+    <a href="teacher_dashboard.html" class="back-btn">返回老師主頁</a>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -104,7 +114,7 @@
       }
 
       const userDoc = await db.collection("users").doc(user.uid).get();
-      if (userDoc.data().role !== "teacher") {
+      if (!userDoc.exists || userDoc.data().role !== "teacher") {
         alert("只有老師能查看此頁面");
         window.location.href = "student_dashboard.html";
         return;
@@ -145,7 +155,6 @@
       }
     });
 
-    // ✅ 刪除 Firestore 中的作品 document
     async function deleteWork(workId) {
       if (!confirm("你確定要刪除此作品嗎？此操作無法復原")) return;
 
