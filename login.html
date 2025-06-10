@@ -244,6 +244,7 @@
                   const docRef = progressRef.doc();
                   batch.set(docRef, {
                     userId: uid,
+                    email: email,
                     course: item.course,
                     status: item.status,
                     lastAccess: timestamp
