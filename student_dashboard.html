@@ -87,6 +87,8 @@
   <header>學生課程主頁 - 棉娃手作學苑</header>
   <div id="navbar-placeholder"></div>
   <h2>課程總覽</h2>
+  <div id="courseListContainer"></div>
+
 
   <div class="card">
     <img src="img/ball.png" alt="縫紉圖示" class="course-icon">
@@ -123,15 +125,18 @@
         return;
       }
 
-      
+      loadCourses();
+
     });
 
+    
     function startCourse(courseName, courseId) {
       const user = auth.currentUser;
       if (!user) {
         alert("請先登入");
         return;
       }
+
 
       const progressRef = db.collection("progress");
 
@@ -264,6 +269,38 @@
         .catch((error) => {
           console.error("❌ 查詢進度時發生錯誤：", error);
           alert("無法取得進度資料，請稍後再試。");
+        });
+    }
+
+    function loadCourses() {
+      const container = document.getElementById("courseListContainer");
+      db.collection("courses").orderBy("createdAt", "desc").get()
+        .then(snapshot => {
+          container.innerHTML = ""; // 清空
+
+          if (snapshot.empty) {
+            container.innerHTML = "<p style='text-align:center;'>目前尚無可學習的課程</p>";
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const course = doc.data();
+            const id = doc.id;
+
+            const div = document.createElement("div");
+            div.className = "card";
+            div.innerHTML = `
+              <img src="img/ball.png" class="course-icon">
+              <h3>${course.title}</h3>
+              <button onclick="startCourse('${course.title}', '${id}')">開始學習</button>
+              <button class="done" onclick="markCompleted('${course.title}')">我學完了</button>
+            `;
+            container.appendChild(div);
+          });
+        })
+        .catch(err => {
+          console.error("❌ 載入課程失敗：", err);
+          container.innerHTML = "<p style='text-align:center;color:red;'>課程載入失敗，請稍後再試</p>";
         });
     }
 

@@ -54,27 +54,15 @@
 </head>
 <body>
   <div id="navbar-placeholder"></div>
-  <h2>基礎縫紉</h2>
+    <h2 id="courseTitle">課程標題載入中...</h2>
 
-  <div class="video-container">
-    <iframe width="844" height="380" src="https://www.youtube.com/embed/3RQxYaw_ky8?list=PL3y-3twXxKNlXnFQG3piGrNbuhb1Xi5Cw" title="新手基礎縫紉教學-平針縫篇" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-  </div>
+  <div id="contentArea" style="padding: 0 20px;"></div>
 
-  <div class="video-container">
-    <iframe width="844" height="380" src="https://www.youtube.com/embed/aQdrmQB8UdM?list=PL3y-3twXxKNlXnFQG3piGrNbuhb1Xi5Cw" title="新手基礎縫紉教學-回針縫篇" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-  </div>
-
-  
-  <div class="video-container">
-    <iframe width="844" height="380" src="https://www.youtube.com/embed/IOdlQLAkZWo?list=PL3y-3twXxKNlXnFQG3piGrNbuhb1Xi5Cw" title="新手基礎縫紉教學-藏針縫篇" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-  </div>
-
-  <div class="description">
+  <div class="description" id="courseDesc" style="display:none;">
     <h3>課程簡介</h3>
-    <p>
-      本單元介紹基礎縫紉技巧，從穿針引線開始，帶你認識手縫的基本操作，適合初學者學習使用。
-    </p>
+    <p id="courseDescText">請稍候載入...</p>
   </div>
+
 
   <div class="button-group">
     <button onclick="goBack()">返回主頁</button>
@@ -98,6 +86,53 @@
     function goNext() {
       window.location.href = "course_basic_1.html";
     }
+
+    // 取得 URL 中的課程 ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const courseId = urlParams.get('id');
+
+    if (!courseId) {
+      alert("找不到課程 ID");
+      goBack();
+    }
+
+    db.collection("courses").doc(courseId).get().then(doc => {
+      if (!doc.exists) {
+        alert("查無課程資料！");
+        goBack();
+        return;
+      }
+
+      const course = doc.data();
+
+      document.getElementById("courseTitle").innerText = course.title || "無標題課程";
+      document.getElementById("courseDescText").innerText = course.description || "";
+      document.getElementById("courseDesc").style.display = "block";
+
+      const contentArea = document.getElementById("contentArea");
+      contentArea.innerHTML = "";
+
+      if (course.sections && Array.isArray(course.sections)) {
+        course.sections.forEach(section => {
+          const container = document.createElement("div");
+          container.className = "video-container";
+
+          if (section.type === "video") {
+            container.innerHTML = `<iframe src="${section.content}" allowfullscreen frameborder="0"></iframe>`;
+          } else if (section.type === "image") {
+            container.innerHTML = `<img src="${section.content}" style="max-width:90%; border-radius:10px;">`;
+          } else if (section.type === "text") {
+            container.innerHTML = `<div class="description" style="margin-top:10px;"><p>${section.content}</p></div>`;
+          }
+
+          contentArea.appendChild(container);
+        });
+      }
+
+    }).catch(error => {
+      console.error("🔥 載入課程失敗：", error);
+      alert("無法載入課程，請稍後再試");
+    });
 
     fetch("shared/navbar.html")
       .then(res => res.text())
