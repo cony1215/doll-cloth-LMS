@@ -10,7 +10,7 @@
     body { font-family: 'Noto Sans TC', sans-serif; background-color: #fffaf2; margin: 0; padding: 20px; }
     h2 { text-align: center; color: #5a2a19; }
     form { max-width: 600px; margin: auto; background: #fff4ed; padding: 20px; border-radius: 10px; }
-    input, textarea { width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    input, textarea, select { width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
     button { padding: 10px 20px; border: none; border-radius: 6px; margin: 5px; background-color: #ff9980; color: white; cursor: pointer; }
     .section { margin-bottom: 10px; }
     .danger { background-color: #c0392b; }
@@ -23,12 +23,17 @@
     <input type="text" id="title" placeholder="課程標題" required />
     <textarea id="description" placeholder="影音圖文教學說明" required></textarea>
     <textarea id="simulateDescription" placeholder="模擬操作說明" required></textarea>
-    <input type="text" id="simulateLink" placeholder="模擬操作頁面連結 (如 stitch/stitch-select.html)(頁面需上傳到Github)" required />
+    <input type="text" id="simulateLink" placeholder="模擬操作頁面連結 (如 stitch/stitch-select.html)" required />
 
     <div id="sectionsContainer"></div>
     <button type="button" onclick="addTextSection()">＋文字段落</button>
     <button type="button" onclick="addImageSection()">＋圖片段落</button>
     <button type="button" onclick="addVideoSection()">＋影片段落</button>
+
+    <select id="prerequisite">
+      <option value="">（可選）請選擇前置課程</option>
+    </select>
+
     <br><br>
     <button type="submit">💾 儲存課程</button>
     <button type="button" class="neutral" onclick="cancelEdit()">↩ 取消</button>
@@ -48,12 +53,14 @@
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get("id");
 
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async user => {
       if (!user) {
         alert("請先登入");
         window.location.href = "login.html";
         return;
       }
+
+      await loadCourseOptions(); // 載入選項
 
       if (editId) {
         document.getElementById("deleteBtn").style.display = "inline-block";
@@ -64,6 +71,7 @@
             document.getElementById("description").value = data.description || "";
             document.getElementById("simulateDescription").value = data.simulateDescription || "";
             document.getElementById("simulateLink").value = data.simulateLink || "";
+            document.getElementById("prerequisite").value = data.prerequisite || "";
 
             const container = document.getElementById("sectionsContainer");
             container.innerHTML = "";
@@ -89,34 +97,30 @@
         const description = document.getElementById("description").value;
         const simulateDescription = document.getElementById("simulateDescription").value;
         const simulateLink = document.getElementById("simulateLink").value;
+        const prerequisite = document.getElementById("prerequisite").value;
 
         const sections = Array.from(document.querySelectorAll(".section")).map(sec => ({
           type: sec.dataset.type,
           content: sec.querySelector("input, textarea").value
         }));
 
+        const courseData = {
+          title,
+          description,
+          simulateDescription,
+          simulateLink,
+          prerequisite,
+          sections,
+          createdBy: user.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
         try {
           if (editId) {
-            await db.collection("courses").doc(editId).set({
-              title,
-              description,
-              simulateDescription,
-              simulateLink,
-              sections,
-              createdBy: user.uid,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await db.collection("courses").doc(editId).set(courseData);
             alert("課程已更新！");
           } else {
-            await db.collection("courses").add({
-              title,
-              description,
-              simulateDescription,
-              simulateLink,
-              sections,
-              createdBy: user.uid,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await db.collection("courses").add(courseData);
             alert("課程已新增！");
           }
           window.location.href = "teacher_dashboard.html";
@@ -126,6 +130,18 @@
         }
       });
     });
+
+    async function loadCourseOptions() {
+      const select = document.getElementById("prerequisite");
+      const snapshot = await db.collection("courses").get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const option = document.createElement("option");
+        option.value = doc.id;
+        option.textContent = data.title || "(未命名)";
+        select.appendChild(option);
+      });
+    }
 
     function cancelEdit() {
       if (confirm("確定取消並返回老師後台？")) {
@@ -161,7 +177,7 @@
       const div = document.createElement("div");
       div.className = "section";
       div.dataset.type = "video";
-      div.innerHTML = '<input type="text" placeholder="影片網址(需貼上嵌入碼中的連結)">';
+      div.innerHTML = '<input type="text" placeholder="影片網址">';
       document.getElementById("sectionsContainer").appendChild(div);
     }
   </script>
