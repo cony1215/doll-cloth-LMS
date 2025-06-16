@@ -25,20 +25,18 @@
       font-size: 1.3em;
       text-align: center;
     }
-    .student-list {
+    .student-list, .course-list {
       max-width: 800px;
       margin: 20px auto;
     }
-    .student-card {
+    .student-card, .course-card {
       background-color: #fff0ea;
       padding: 15px;
       border-radius: 8px;
       margin-bottom: 10px;
-      cursor: pointer;
       box-shadow: 1px 1px 6px #ccc;
-      transition: 0.2s;
     }
-    .student-card:hover {
+    .student-card:hover, .course-card:hover {
       background-color: #ffe1d6;
     }
     .progress-card {
@@ -56,30 +54,28 @@
     .nav-link:hover {
       text-decoration: underline;
     }
+    .course-actions button {
+      margin-left: 10px;
+      padding: 4px 10px;
+      font-size: 0.9em;
+      background-color: #ddd;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <header>老師主頁 - 棉娃手作學苑</header>
   <div id="navbar-placeholder"></div>
 
-  <!--新增課程按鈕  -->
+  <!-- 新增課程按鈕 -->
   <div style="text-align:center; margin-top: 20px;">
-    <button onclick="toggleCourseForm()" style="padding: 10px 20px; background-color:#ff9980; color:white; border:none; border-radius:6px; font-size:1em;">➕ 新增課程</button>
+    <button onclick="window.location.href='add_course.html'" style="padding: 10px 20px; background-color:#ff9980; color:white; border:none; border-radius:6px; font-size:1em;">➕ 新增課程</button>
   </div>
 
-  <div id="courseFormContainer" style="display:none; max-width:600px; margin:20px auto; background-color:#fff4ed; padding:20px; border-radius:10px;">
-    <form id="courseForm">
-      <input type="text" id="title" placeholder="課程標題" required style="width:100%; margin-bottom:10px;" />
-      <textarea id="description" placeholder="課程簡介" required style="width:100%; height:80px; margin-bottom:10px;"></textarea>
-
-      <div id="sectionsContainer"></div>
-      <button type="button" onclick="addTextSection()">＋文字段落</button>
-      <button type="button" onclick="addImageSection()">＋圖片段落</button>
-      <button type="button" onclick="addVideoSection()">＋影片段落</button>
-      <br><br>
-      <button type="submit" style="background:#ff6666; color:white; border:none; padding:10px 20px; border-radius:6px;">✅ 儲存課程</button>
-    </form>
-  </div>
+  <div class="section-title">我的課程清單</div>
+  <div class="course-list" id="courseList">載入中...</div>
 
   <div class="section-title">學生清單（點擊查看／收合進度）</div>
   <div class="student-list" id="studentList">載入中...</div>
@@ -111,40 +107,46 @@
       return;
     }
 
-    //提交課程內容到 Firebase
-    document.getElementById("courseForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
-
-      const title = document.getElementById("title").value;
-      const description = document.getElementById("description").value;
-
-      const sections = Array.from(document.querySelectorAll(".section")).map(sec => ({
-        type: sec.dataset.type,
-        content: sec.querySelector("input, textarea").value
-      }));
-
-      const currentUser = auth.currentUser;
-
-      try {
-        await db.collection("courses").add({
-          title,
-          description,
-          sections,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          createdBy: currentUser.uid
-        });
-        alert("課程已成功新增！");
-        document.getElementById("courseForm").reset();
-        document.getElementById("sectionsContainer").innerHTML = "";
-        toggleCourseForm(); // 隱藏表單
-      } catch (err) {
-        console.error("新增課程錯誤：", err);
-        alert("儲存失敗，請稍後再試");
-      }
-    });
-
     loadStudentList();
+    loadTeacherCourses(user.uid);
   });
+
+  async function loadTeacherCourses(teacherId) {
+    const courseListDiv = document.getElementById("courseList");
+    courseListDiv.innerHTML = "";
+
+    const coursesSnap = await db.collection("courses").where("createdBy", "==", teacherId).get();
+    if (coursesSnap.empty) {
+      courseListDiv.innerHTML = "<p style='text-align:center;'>尚未建立任何課程。</p>";
+      return;
+    }
+
+    coursesSnap.forEach(doc => {
+      const data = doc.data();
+      const card = document.createElement("div");
+      card.className = "course-card";
+      card.innerHTML = `
+        <div><strong>${data.title}</strong></div>
+        <div class="course-actions">
+          <button onclick="editCourse('${doc.id}')">編輯</button>
+          <button onclick="deleteCourse('${doc.id}')">刪除</button>
+        </div>
+      `;
+      courseListDiv.appendChild(card);
+    });
+  }
+
+  function editCourse(courseId) {
+    window.location.href = `add_course.html?id=${courseId}`;
+  }
+
+  async function deleteCourse(courseId) {
+    if (confirm("確定要刪除這門課程嗎？刪除後無法恢復。")) {
+      await db.collection("courses").doc(courseId).delete();
+      alert("課程已刪除");
+      location.reload();
+    }
+  }
 
   async function loadStudentList() {
     const studentListDiv = document.getElementById("studentList");
@@ -233,13 +235,11 @@
     function logout() {
       firebase.auth().signOut()
         .then(() => {
-          console.log("✅ 使用者已登出");
           alert("您已成功登出");
           window.location.href = "login.html";
         })
         .catch((error) => {
-          console.error("登出失敗：", error);
-          alert("登出失敗，請稍後再試。");
+          alert("登出失敗，請稍後再試。" + error.message);
         });
     }
 
@@ -261,36 +261,6 @@
       });
     }
 
-    function toggleCourseForm() {
-      const form = document.getElementById("courseFormContainer");
-      form.style.display = form.style.display === "none" ? "block" : "none";
-    }
-
-    function addTextSection() {
-      const div = document.createElement("div");
-      div.className = "section";
-      div.dataset.type = "text";
-      div.innerHTML = '<textarea placeholder="輸入文字說明" style="width:100%; margin-top:10px;"></textarea>';
-      document.getElementById("sectionsContainer").appendChild(div);
-    }
-
-    function addImageSection() {
-      const div = document.createElement("div");
-      div.className = "section";
-      div.dataset.type = "image";
-      div.innerHTML = '<input type="text" placeholder="輸入圖片網址" style="width:100%; margin-top:10px;">';
-      document.getElementById("sectionsContainer").appendChild(div);
-    }
-
-    function addVideoSection() {
-      const div = document.createElement("div");
-      div.className = "section";
-      div.dataset.type = "video";
-      div.innerHTML = '<input type="text" placeholder="輸入影片連結" style="width:100%; margin-top:10px;">';
-      document.getElementById("sectionsContainer").appendChild(div);
-    }
-
-
     // 🔗 加入跳轉至作品頁的按鈕
     const viewWorksBtn = document.createElement("button");
     viewWorksBtn.innerText = "📸 查看所有學生作品";
@@ -310,8 +280,6 @@
       window.location.href = "teacher_work.html";
     };
     document.body.appendChild(viewWorksBtn);
-
 </script>
-
 </body>
 </html>
