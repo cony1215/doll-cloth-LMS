@@ -98,31 +98,45 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const courseId = new URLSearchParams(window.location.search).get("id");
-
+    
+    // 取得課程 ID
+    let courseId = new URLSearchParams(window.location.search).get("id");
     if (!courseId) {
-      alert("找不到課程 ID，請從課程列表進入");
-      window.location.href = `course_basic_1.html?id=${courseId}`;
-;
+      courseId = localStorage.getItem("currentCourseId");
+    } else {
+      localStorage.setItem("currentCourseId", courseId);
+    }
+    if (!courseId) {
+      alert("❌ 找不到課程 ID");
+      window.location.href = "student_dashboard.html";
     }
 
+    // 🔁 通用跳轉函式
+    function redirectWithId(targetPath) {
+      if (courseId) {
+        window.location.href = `${targetPath}?id=${courseId}`;
+      } else {
+        alert("❌ 無法取得課程 ID");
+      }
+    }
 
+    // 按鈕事件
     function goBack() {
-      window.location.href = "course_basic.html";
+      redirectWithId("course_basic.html");
     }
-
     function goNext() {
-      window.location.href = "course_basic_2.html";
+      redirectWithId("course_basic_2.html");
     }
-
     function selectMode(mode) {
-      localStorage.setItem('stitchMode', mode);
-      window.location.href = 'stitch-game.html';
+      localStorage.setItem("stitchMode", mode);
+      redirectWithId("stitch-game.html");
     }
 
+    // 撈取課程資料
     db.collection("courses").doc(courseId).get().then(doc => {
       if (!doc.exists) {
         alert("課程不存在");
+        goBack();
         return;
       }
 

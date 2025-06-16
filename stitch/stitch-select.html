@@ -64,17 +64,43 @@
   <button class="fixed-button finish-btn" onclick="goNext()">完成練習</button>
 
   <script>
+    // 通用取得課程 ID 函式
+    function getCourseId() {
+      let courseId = new URLSearchParams(window.location.search).get("id");
+      if (!courseId) {
+        courseId = localStorage.getItem("currentCourseId");
+      } else {
+        localStorage.setItem("currentCourseId", courseId);
+      }
+      return courseId;
+    }
+
     function selectMode(mode) {
+      const courseId = getCourseId();
+      if (!courseId) {
+        alert("⚠️ 無法取得課程 ID");
+        return;
+      }
       localStorage.setItem('stitchMode', mode);
-      window.location.href = 'stitch-game.html';
+      window.location.href = `stitch-game.html?id=${courseId}`;
     }
 
     function goBack() {
-      window.location.href = '../student_dashboard.html';
+      const courseId = getCourseId();
+      if (!courseId) {
+        window.location.href = "../student_dashboard.html";
+      } else {
+        window.location.href = `../course_basic_1.html?id=${courseId}`;
+      }
     }
 
     function goNext() {
-      window.location.href = '../course_basic_1.html';
+      const courseId = getCourseId();
+      if (!courseId) {
+        alert("⚠️ 無法取得課程 ID");
+        return;
+      }
+      window.location.href = `../course_basic_2.html?id=${courseId}`;
     }
   </script>
 </body>
