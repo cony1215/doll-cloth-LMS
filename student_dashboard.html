@@ -88,23 +88,7 @@
   <div id="navbar-placeholder"></div>
   <h2>課程總覽</h2>
   <div id="courseListContainer"></div>
-
-
-  <div class="card">
-    <img src="img/ball.png" alt="縫紉圖示" class="course-icon">
-    <h3>基礎縫紉</h3>
-    <button onclick="startCourse('基礎縫紉', 'basic')">開始學習</button>
-    <button class="done" onclick="markCompleted('基礎縫紉')">我學完了</button>
-    
-  </div>
-
-  <div class="card">
-    <img src="img/ball.png" alt="縫紉圖示" class="course-icon">
-    <h3>娃衣打版</h3>
-    <button onclick="startCourse('娃衣打版', 'cloth')">開始學習</button>
-    <button class="done" onclick="markCompleted('娃衣打版')">我學完了</button>
-    
-  </div>
+ 
 
   <script>
     const firebaseConfig = {
@@ -159,7 +143,7 @@
               })
               .then(() => {
                 console.log("✅ 新增完成，將跳轉頁面");
-                window.location.href = `course_${courseId}.html`;
+                window.location.href = `course_basic.html?id=${courseId}`;
               })
               .catch((error) => {
                 console.error("❌ 新增進度失敗：", error);
@@ -178,7 +162,7 @@
                 })
                 .then(() => {
                   console.log(`✅ 成功更新 ${doc.id}，即將跳轉`);
-                  window.location.href = `course_${courseId}.html`;
+                  window.location.href = `course_basic.html?id=${courseId}`;
                 })
                 .catch((err) => {
                   console.error(`❌ 更新 ${doc.id} 失敗：`, err);
@@ -274,7 +258,7 @@
 
     function loadCourses() {
       const container = document.getElementById("courseListContainer");
-      db.collection("courses").orderBy("createdAt", "desc").get()
+      db.collection("courses").get()
         .then(snapshot => {
           container.innerHTML = ""; // 清空
 

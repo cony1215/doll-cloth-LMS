@@ -67,20 +67,20 @@
 </head>
 <body>
   <div id="navbar-placeholder"></div>
-  <h2>基礎縫紉</h2>
+  <h2 id="courseTitle">載入中...</h2>
 
-  <div class="stitch-container">
-  <h3>開始模擬針法練習</h3>
-  <button class="mode-button" onclick="window.location.href='stitch/stitch-select.html'">
-    進入模擬針法練習
-  </button>
-</div>
+  <div class="stitch-container" id="simulateContainer">
+    <h3>開始模擬針法練習</h3>
+    <button class="mode-button" id="simulateButton" style="display:none;">
+      進入模擬針法練習
+    </button>
+    <p id="noSimulateMsg">此課程尚未設定模擬操作連結。</p>
+  </div>
 
+  <!-- ✅ 保留這個區塊不要動 -->
   <div class="description">
     <h3>針法模擬練習簡介</h3>
-    <p>
-      總共會有三種基礎針法，平針縫、回針縫和藏針縫，請透過滑鼠點擊畫面中的圓圈和前後選項完成針法練習。
-    </p>
+    <p id="simulateDesc">載入中...</p>
   </div>
 
   <div class="button-group">
@@ -98,6 +98,15 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    const courseId = new URLSearchParams(window.location.search).get("id");
+
+    if (!courseId) {
+      alert("找不到課程 ID，請從課程列表進入");
+      window.location.href = `course_basic_1.html?id=${courseId}`;
+;
+    }
+
+
     function goBack() {
       window.location.href = "course_basic.html";
     }
@@ -110,6 +119,34 @@
       localStorage.setItem('stitchMode', mode);
       window.location.href = 'stitch-game.html';
     }
+
+    db.collection("courses").doc(courseId).get().then(doc => {
+      if (!doc.exists) {
+        alert("課程不存在");
+        return;
+      }
+
+      const course = doc.data();
+
+      document.getElementById("courseTitle").innerText = course.title || "模擬操作";
+      document.getElementById("simulateDesc").innerText =
+        course.simulateDescription || "這門課目前尚未提供模擬說明內容。";
+
+      const simulateBtn = document.getElementById("simulateButton");
+      const noSimMsg = document.getElementById("noSimulateMsg");
+      if (course.simulateLink) {
+        simulateBtn.style.display = "inline-block";
+        simulateBtn.onclick = () => {
+          window.location.href = course.simulateLink;
+        };
+        noSimMsg.style.display = "none";
+      } else {
+        simulateBtn.style.display = "none";
+        noSimMsg.style.display = "block";
+      }
+    });
+
+
 
     fetch("shared/navbar.html")
       .then(res => res.text())
