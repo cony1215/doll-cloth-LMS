@@ -21,7 +21,7 @@
   <h2>📘 新增 / 編輯課程</h2>
   <form id="courseForm">
     <input type="text" id="title" placeholder="課程標題" required />
-    <textarea id="description" placeholder="影音圖文教學說明(需貼上嵌入碼中的連結)" required></textarea>
+    <textarea id="description" placeholder="影音圖文教學說明" required></textarea>
     <textarea id="simulateDescription" placeholder="模擬操作說明" required></textarea>
     <input type="text" id="simulateLink" placeholder="模擬操作頁面連結 (如 stitch/stitch-select.html)(頁面需上傳到Github)" required />
 
@@ -161,7 +161,7 @@
       const div = document.createElement("div");
       div.className = "section";
       div.dataset.type = "video";
-      div.innerHTML = '<input type="text" placeholder="影片網址">';
+      div.innerHTML = '<input type="text" placeholder="影片網址(需貼上嵌入碼中的連結)">';
       document.getElementById("sectionsContainer").appendChild(div);
     }
   </script>
