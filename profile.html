@@ -124,10 +124,10 @@
     <button class="button" onclick="changePassword()">變更密碼</button>
     <button class="button" onclick="logout()">登出</button>
 
-    <!-- 🌸 課程進度條 -->
+    <!-- 🌸 課程進度條
     <h3 style="text-align:center; color: #ff6b81; margin-top: 40px;">🧵 我的課程進度</h3>
     <div id="courseProgressContainer"></div>
-  </div>
+  </div> -->
 
   <script>
     const firebaseConfig = {
@@ -207,43 +207,43 @@
     }
 
     // 🌸 課程進度載入
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) return;
-      const uid = user.uid;
-      const container = document.getElementById("courseProgressContainer");
+    // auth.onAuthStateChanged(async (user) => {
+    //   if (!user) return;
+    //   const uid = user.uid;
+    //   const container = document.getElementById("courseProgressContainer");
 
-      try {
-        const snapshot = await db.collection("progress").where("userId", "==", uid).get();
-        if (snapshot.empty) {
-          container.innerHTML = "<p style='text-align:center; color: #ff6b81;'>尚未有課程進度紀錄。</p>";
-          return;
-        }
+    //   try {
+    //     const snapshot = await db.collection("progress").where("userId", "==", uid).get();
+    //     if (snapshot.empty) {
+    //       container.innerHTML = "<p style='text-align:center; color: #ff6b81;'>尚未有課程進度紀錄。</p>";
+    //       return;
+    //     }
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const title = data.course;
-          const status = data.status;
+    //     snapshot.forEach(doc => {
+    //       const data = doc.data();
+    //       const title = data.course;
+    //       const status = data.status;
 
-          let percent = 0;
-          if (status === "未開始") percent = 0;
-          else if (status === "進行中") percent = 50;
-          else if (status === "已完成") percent = 100;
+    //       let percent = 0;
+    //       if (status === "未開始") percent = 0;
+    //       else if (status === "進行中") percent = 50;
+    //       else if (status === "已完成") percent = 100;
 
-          const courseItem = document.createElement("div");
-          courseItem.className = "course-item";
-          courseItem.innerHTML = `
-            <div class="course-title">${title}（${status}）</div>
-            <div class="progress-bar">
-              <div class="progress-bar-fill" style="width: ${percent}%">${percent}%</div>
-            </div>
-          `;
-          container.appendChild(courseItem);
-        });
-      } catch (err) {
-        console.error("課程進度載入失敗：", err);
-        container.innerHTML = "<p style='text-align:center; color: red;'>課程進度載入失敗</p>";
-      }
-    });
+    //       const courseItem = document.createElement("div");
+    //       courseItem.className = "course-item";
+    //       courseItem.innerHTML = `
+    //         <div class="course-title">${title}（${status}）</div>
+    //         <div class="progress-bar">
+    //           <div class="progress-bar-fill" style="width: ${percent}%">${percent}%</div>
+    //         </div>
+    //       `;
+    //       container.appendChild(courseItem);
+    //     });
+    //   } catch (err) {
+    //     console.error("課程進度載入失敗：", err);
+    //     container.innerHTML = "<p style='text-align:center; color: red;'>課程進度載入失敗</p>";
+    //   }
+    // });
 
     // 載入 navbar
     fetch("shared/navbar.html")
