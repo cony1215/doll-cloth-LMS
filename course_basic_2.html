@@ -97,167 +97,77 @@
     <button onclick="goNext()">完成課程</button>
   </div>
 
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
-        authDomain: "doll-cloth-lms.firebaseapp.com",
-        projectId: "doll-cloth-lms"
-      };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      const auth = firebase.auth();
-      const db = firebase.firestore();
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1BqFNd-kwD63_a-2ns6ZlYDKKPL7kIF0",
+      authDomain: "doll-cloth-lms.firebaseapp.com",
+      projectId: "doll-cloth-lms"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-      function goBack() {
-        window.location.href = "course_basic_1.html";
+    function goBack() {
+      window.location.href = "course_basic_1.html";
+    }
+
+    async function goNext() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入再完成課程");
+        return;
       }
 
-      async function goNext() {
-        const user = auth.currentUser;
-        if (!user) {
-          alert("請先登入再完成課程");
+      const urlParams = new URLSearchParams(window.location.search);
+      const courseId = urlParams.get("id");
+      if (!courseId) {
+        alert("找不到課程 ID");
+        return;
+      }
+
+      try {
+        const courseDoc = await db.collection("courses").doc(courseId).get();
+        if (!courseDoc.exists) {
+          alert("找不到對應課程資料");
           return;
         }
-
-        await markCourseCompleted(user.uid, "基礎縫紉");
+        const courseName = courseDoc.data().title;
+        await markCourseCompleted(user.uid, courseName);
         alert("✅ 恭喜你已完成課程！");
         window.location.href = "student_dashboard.html";
+      } catch (error) {
+        console.error("完成課程時發生錯誤：", error);
+        alert("完成課程時發生錯誤，請稍後再試。");
       }
+    }
 
-      fetch("shared/navbar.html")
-        .then(res => res.text())
-        .then(html => {
-          document.getElementById("navbar-placeholder").innerHTML = html;
-          auth.onAuthStateChanged((user) => {
-            const loginLink = document.getElementById("loginLink");
-            const dropdown = document.getElementById("accountDropdown");
-            const accountEmail = document.getElementById("accountEmail");
+    async function markCourseCompleted(uid, courseName) {
+      const progressRef = db.collection("progress");
+      const snap = await progressRef
+        .where("userId", "==", uid)
+        .where("course", "==", courseName)
+        .get();
 
-            if (user) {
-              if (loginLink) loginLink.style.display = "none";
-              if (dropdown) dropdown.style.display = "inline-block";
-              if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
-
-              const logoutLink = document.getElementById("logoutLink");
-              if (logoutLink) logoutLink.onclick = () => logout();
-
-              const dashboardLink = document.getElementById("dashboardLink");
-              if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
-            } else {
-              if (loginLink) loginLink.style.display = "inline-block";
-              if (dropdown) dropdown.style.display = "none";
-            }
-          });
+      if (snap.empty) {
+        await progressRef.add({
+          userId: uid,
+          course: courseName,
+          status: "已完成",
+          lastAccess: firebase.firestore.FieldValue.serverTimestamp()
         });
-
-      function logout() {
-        firebase.auth().signOut()
-          .then(() => {
-            alert("您已成功登出");
-            window.location.href = "login.html";
-          })
-          .catch((error) => {
-            alert("登出失敗：" + error.message);
-          });
-      }
-
-      function goToDashboard() {
-        const user = auth.currentUser;
-        if (!user) {
-          alert("請先登入");
-          window.location.href = "login.html";
-          return;
-        }
-        db.collection("users").doc(user.uid).get().then(doc => {
-          const role = doc.data().role;
-          if (role === "teacher") {
-            window.location.href = "teacher_dashboard.html";
-          } else {
-            window.location.href = "student_dashboard.html";
-          }
-        });
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById("uploadForm");
-        form.addEventListener("submit", uploadWork);
-      });
-
-      async function uploadWork(e) {
-        e.preventDefault();
-        const user = auth.currentUser;
-        if (!user) {
-          alert("請先登入才能上傳作品");
-          return;
-        }
-
-        const file = document.getElementById("image").files[0];
-        const title = document.getElementById("title").value.trim();
-        const description = document.getElementById("description").value.trim();
-
-        if (!file || !title) {
-          alert("請填寫所有欄位");
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", "demo_stu");
-
-        try {
-          const res = await fetch("https://api.cloudinary.com/v1_1/da77gowqh/image/upload", {
-            method: "POST",
-            body: formData
-          });
-
-          const data = await res.json();
-          const imageUrl = data.secure_url;
-
-          document.getElementById("previewImage").src = imageUrl;
-          document.getElementById("previewImage").style.display = "block";
-
-          await db.collection("works").add({
-            userId: user.uid,
-            title,
-            description,
-            imageUrl,
-            createdAt: firebase.firestore.Timestamp.fromDate(new Date())
-          });
-
-          alert("✅ 作品已成功上傳並儲存！");
-          document.getElementById("uploadForm").reset();
-
-        } catch (err) {
-          console.error(err);
-          alert("❌ 上傳過程發生錯誤");
-        }
-      }
-
-      async function markCourseCompleted(uid, courseName) {
-        const progressRef = db.collection("progress");
-        const snap = await progressRef
-          .where("userId", "==", uid)
-          .where("course", "==", courseName)
-          .get();
-
-        if (snap.empty) {
-          await progressRef.add({
-            userId: uid,
-            course: courseName,
+      } else {
+        for (const doc of snap.docs) {
+          await doc.ref.update({
             status: "已完成",
             lastAccess: firebase.firestore.FieldValue.serverTimestamp()
           });
-        } else {
-          for (const doc of snap.docs) {
-            await doc.ref.update({
-              status: "已完成",
-              lastAccess: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }
         }
       }
+    }
   </script>
+
 
 </body>
 </html>
