@@ -235,23 +235,24 @@
 
               if (existingProgress.empty) {
                 const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-                const initialCourses = [
-                  { course: "基礎縫紉", status: "未開始" },
-                  { course: "娃衣打版", status: "未開始" }
-                ];
+                const courseDocs = await db.collection("courses").get();
                 const batch = db.batch();
-                initialCourses.forEach((item) => {
-                  const docRef = progressRef.doc();
-                  batch.set(docRef, {
+
+                courseDocs.forEach((doc) => {
+                  const courseId = doc.id;
+                  const progressDocRef = progressRef.doc();
+                  batch.set(progressDocRef, {
                     userId: uid,
                     email: email,
-                    course: item.course,
-                    status: item.status,
+                    course: courseId, // ✅ 儲存 UID
+                    status: "未開始",
                     lastAccess: timestamp
                   });
                 });
+
                 await batch.commit();
               }
+
               window.location.href = "student_dashboard.html";
 
             } else if (role === "teacher") {
@@ -259,7 +260,7 @@
             } else {
               alert("未知角色，請聯絡管理員");
             }
-          }, 2200); // 給動畫時間
+          }, 2200);
         })
         .catch((error) => {
           alert("登入失敗：" + error.message);
@@ -296,5 +297,6 @@
         });
     }
   </script>
+
 </body>
 </html>

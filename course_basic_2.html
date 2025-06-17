@@ -133,8 +133,8 @@
           alert("找不到對應課程資料");
           return;
         }
-        const courseName = courseDoc.data().title;
-        await markCourseCompleted(user.uid, courseName);
+
+        await markCourseCompleted(user.uid, courseId); // ✅ 用 UID
         alert("✅ 恭喜你已完成課程！");
         window.location.href = "student_dashboard.html";
       } catch (error) {
@@ -143,17 +143,17 @@
       }
     }
 
-    async function markCourseCompleted(uid, courseName) {
+    async function markCourseCompleted(uid, courseId) {
       const progressRef = db.collection("progress");
       const snap = await progressRef
         .where("userId", "==", uid)
-        .where("course", "==", courseName)
+        .where("course", "==", courseId)
         .get();
 
       if (snap.empty) {
         await progressRef.add({
           userId: uid,
-          course: courseName,
+          course: courseId,
           status: "已完成",
           lastAccess: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -166,8 +166,61 @@
         }
       }
     }
+
+    fetch("shared/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
+
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
+
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
+
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
+
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
+          }
+        });
+      });
+
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => {
+          alert("您已成功登出");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          alert("登出失敗，請稍後再試。" + error.message);
+        });
+    }
+
+    function goToDashboard() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const role = doc.data().role;
+        if (role === "teacher") {
+          window.location.href = "teacher_dashboard.html";
+        } else {
+          window.location.href = "student_dashboard.html";
+        }
+      });
+    }
   </script>
-
-
 </body>
 </html>
