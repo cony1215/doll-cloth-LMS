@@ -7,15 +7,13 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <style>
-   @import url('https://fonts.googleapis.com/css2?family=JF+Open+Huninn&display=swap');
-
+    @import url('https://fonts.googleapis.com/css2?family=JF+Open+Huninn&display=swap');
     body {
       font-family: 'Noto Sans TC', sans-serif;
       background-color:#f6e5cb;
       padding: 0px;
       margin: 0px;
     }
-
     header {
       background-color: #ffc3b5;
       padding: 20px;
@@ -23,14 +21,12 @@
       color: white;
       font-size: 1.5em;
     }
-
     h2 {
       text-align: center;
       font-size: 2em;
       color: #5a3e36;
       margin-bottom: 40px;
     }
-
     .card {
       background-color: #fff0ea;
       padding: 30px 25px;
@@ -41,46 +37,36 @@
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
       transition: transform 0.2s ease;
     }
-
     .card:hover {
       transform: scale(1.02);
     }
-
     .card h3 {
       margin-bottom: 20px;
       color: #a75f4a;
       font-size: 1.3em;
     }
-
     button {
       margin: 8px;
       padding: 10px 18px;
       border: none;
       border-radius: 8px;
-      cursor: pointer;
-      background-color: #ff9980;
-      color: white;
       font-size: 1em;
       transition: background-color 0.3s;
+      background-color: #ff9980;
+      color: white;
+      cursor: pointer;
     }
-
     button:hover {
       background-color: #ff7a62;
     }
-
-    button.done {
-      background-color: #7fcf94;
+    button.disabled {
+      background-color: gray !important;
+      cursor: not-allowed !important;
     }
-
-    button.done:hover {
-      background-color: #66bb6a;
-    }
-
     .course-icon {
       width: 60px;
       margin-bottom: 12px;
     }
-
   </style>
 </head>
 <body>
@@ -88,7 +74,6 @@
   <div id="navbar-placeholder"></div>
   <h2>課程總覽</h2>
   <div id="courseListContainer"></div>
- 
 
   <script>
     const firebaseConfig = {
@@ -102,29 +87,11 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    auth.onAuthStateChanged((user) => {
-      if (!user) {
-        alert("請先登入");
-        window.location.href = "login.html";
-        return;
-      }
-
-      loadCourses();
-
-    });
-
-    
     function startCourse(courseName, courseId) {
       const user = auth.currentUser;
-      if (!user) {
-        alert("請先登入");
-        return;
-      }
-
+      if (!user) return;
 
       const progressRef = db.collection("progress");
-
-      console.log(`🔍 開始查詢課程進度：userId=${user.uid}, course=${courseName}`);
 
       progressRef
         .where("userId", "==", user.uid)
@@ -132,213 +99,95 @@
         .get()
         .then((querySnapshot) => {
           if (querySnapshot.empty) {
-            console.log("📂 沒有找到進度紀錄，準備新增一筆...");
-            // ➕ 沒有資料時，自動新增進度
-            progressRef
-              .add({
-                userId: user.uid,
-                course: courseName,
+            progressRef.add({
+              userId: user.uid,
+              course: courseName,
+              status: "進行中",
+              lastAccess: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              window.location.href = `course_basic.html?id=${courseId}`;
+            });
+          } else {
+            querySnapshot.forEach((doc) => {
+              doc.ref.update({
                 status: "進行中",
                 lastAccess: firebase.firestore.FieldValue.serverTimestamp()
-              })
-              .then(() => {
-                console.log("✅ 新增完成，將跳轉頁面");
+              }).then(() => {
                 window.location.href = `course_basic.html?id=${courseId}`;
-              })
-              .catch((error) => {
-                console.error("❌ 新增進度失敗：", error);
-                alert("無法新增課程進度，請稍後再試");
               });
-          } else {
-            console.log(`📝 找到 ${querySnapshot.size} 筆紀錄，準備更新...`);
-            let updated = false;
-            querySnapshot.forEach((doc) => {
-              updated = true;
-              console.log(`🛠 正在更新文件 ${doc.id}`);
-              doc.ref
-                .update({
-                  status: "進行中",
-                  lastAccess: firebase.firestore.FieldValue.serverTimestamp()
-                })
-                .then(() => {
-                  console.log(`✅ 成功更新 ${doc.id}，即將跳轉`);
-                  window.location.href = `course_basic.html?id=${courseId}`;
-                })
-                .catch((err) => {
-                  console.error(`❌ 更新 ${doc.id} 失敗：`, err);
-                  alert("更新課程進度失敗");
-                });
             });
-            if (!updated) {
-              console.warn("⚠️ 查到紀錄但沒有任何文件被更新");
-            }
           }
-        })
-        .catch((error) => {
-          console.error("❌ 查詢進度失敗：", error);
-          alert("載入進度時出現錯誤，請稍後再試");
         });
     }
 
-
-
-    function markCompleted(courseName) {
+    async function loadCourses() {
+      const container = document.getElementById("courseListContainer");
       const user = auth.currentUser;
-      if (!user) {
-        console.warn("⚠️ 使用者尚未登入，無法標記完成");
-        alert("請先登入");
+      if (!user) return;
+
+      const completedSet = new Set();
+      const progressSnap = await db.collection("progress")
+        .where("userId", "==", user.uid)
+        .where("status", "==", "已完成")
+        .get();
+
+      progressSnap.forEach(doc => completedSet.add(doc.data().course));
+
+      const courseSnap = await db.collection("courses").get();
+      container.innerHTML = "";
+
+      if (courseSnap.empty) {
+        container.innerHTML = "<p style='text-align:center;'>目前尚無可學習的課程</p>";
         return;
       }
 
-      const progressRef = db.collection("progress");
+      courseSnap.forEach(doc => {
+        const course = doc.data();
+        const id = doc.id;
+        const prerequisite = course.prerequisite || "";
+        const canStart = !prerequisite || completedSet.has(prerequisite);
 
-      console.log(`🔍 準備查詢進度資料：userId=${user.uid}, course=${courseName}`);
-
-      progressRef
-        .where("userId", "==", user.uid)
-        .where("course", "==", courseName)
-        .get()
-        .then((querySnapshot) => {
-          console.log(`📋 查詢到 ${querySnapshot.size} 筆資料`);
-
-          if (querySnapshot.empty) {
-            console.log("📂 查無資料，準備新增一筆已完成紀錄...");
-
-            progressRef
-              .add({
-                userId: user.uid,
-                course: courseName,
-                status: "已完成",
-                lastAccess: firebase.firestore.FieldValue.serverTimestamp()
-              })
-              .then((docRef) => {
-                console.log(`✅ 已新增完成紀錄，文件ID：${docRef.id}`);
-                alert(`${courseName} 已標記為已完成`);
-              })
-              .catch((err) => {
-                console.error("❌ 新增紀錄失敗：", err);
-                alert("無法新增完成紀錄，請稍後再試。");
-              });
-
-          } else {
-            console.log("🛠 找到紀錄，開始逐筆更新...");
-
-            let updateCount = 0;
-
-            querySnapshot.forEach((doc) => {
-              console.log(`↪️ 正在更新文件 ${doc.id}`);
-              doc.ref.update({
-                status: "已完成",
-                lastAccess: firebase.firestore.FieldValue.serverTimestamp()
-              })
-              .then(() => {
-                console.log(`✅ 文件 ${doc.id} 成功更新為已完成`);
-                updateCount++;
-              })
-              .catch((err) => {
-                console.error(`❌ 文件 ${doc.id} 更新失敗：`, err);
-              });
-            });
-
-            // 為了確保使用者有得到通知
-            setTimeout(() => {
-              if (updateCount > 0) {
-                alert(`${courseName} 已標記為已完成`);
-              } else {
-                alert(`${courseName} 標記失敗，請稍後再試`);
-              }
-            }, 500);
-          }
-        })
-        .catch((error) => {
-          console.error("❌ 查詢進度時發生錯誤：", error);
-          alert("無法取得進度資料，請稍後再試。");
-        });
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <img src="img/ball.png" class="course-icon">
+          <h3>${course.title}</h3>
+          ${canStart
+            ? `<button onclick="startCourse('${course.title}', '${id}')">開始學習</button>`
+            : `<button disabled class="disabled">需完成前置課程</button>`}
+        `;
+        container.appendChild(div);
+      });
     }
-
-    function loadCourses() {
-      const container = document.getElementById("courseListContainer");
-      db.collection("courses").get()
-        .then(snapshot => {
-          container.innerHTML = ""; // 清空
-
-          if (snapshot.empty) {
-            container.innerHTML = "<p style='text-align:center;'>目前尚無可學習的課程</p>";
-            return;
-          }
-
-          snapshot.forEach(doc => {
-            const course = doc.data();
-            const id = doc.id;
-
-            const div = document.createElement("div");
-            div.className = "card";
-            div.innerHTML = `
-              <img src="img/ball.png" class="course-icon">
-              <h3>${course.title}</h3>
-              <button onclick="startCourse('${course.title}', '${id}')">開始學習</button>
-              <button class="done" onclick="markCompleted('${course.title}')">我學完了</button>
-            `;
-            container.appendChild(div);
-          });
-        })
-        .catch(err => {
-          console.error("❌ 載入課程失敗：", err);
-          container.innerHTML = "<p style='text-align:center;color:red;'>課程載入失敗，請稍後再試</p>";
-        });
-    }
-
 
     fetch("shared/navbar.html")
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById("navbar-placeholder").innerHTML = html;
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar-placeholder").innerHTML = html;
 
-      auth.onAuthStateChanged(async (user) => {
-        const loginLink = document.getElementById("loginLink");
-        const dropdown = document.getElementById("accountDropdown");
-        const accountEmail = document.getElementById("accountEmail");
+        auth.onAuthStateChanged(async (user) => {
+          const loginLink = document.getElementById("loginLink");
+          const dropdown = document.getElementById("accountDropdown");
+          const accountEmail = document.getElementById("accountEmail");
 
-        if (user) {
-          if (loginLink) loginLink.style.display = "none";
-          if (dropdown) dropdown.style.display = "inline-block";
-          if (accountEmail) accountEmail.textContent = `${user.email} ▾`;
+          if (user) {
+            if (loginLink) loginLink.style.display = "none";
+            if (dropdown) dropdown.style.display = "inline-block";
+            if (accountEmail) accountEmail.innerHTML = `${user.email} ▾`;
 
-          const logoutLink = document.getElementById("logoutLink");
-          if (logoutLink) logoutLink.onclick = () => logout();
+            const logoutLink = document.getElementById("logoutLink");
+            if (logoutLink) logoutLink.onclick = () => logout();
 
-          const dashboardLink = document.getElementById("dashboardLink");
-          if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
+            const dashboardLink = document.getElementById("dashboardLink");
+            if (dashboardLink) dashboardLink.onclick = () => goToDashboard();
 
-          try {
-            const userDoc = await db.collection("users").doc(user.uid).get();
-            if (!userDoc.exists) {
-              alert("找不到使用者資料！");
-              window.location.href = "login.html";
-              return;
-            }
-
-            const role = userDoc.data().role;
-            if (role !== "student") {
-              alert("您沒有權限進入學生專區，將返回首頁");
-              window.location.href = "index.html";
-              return;
-            }
-
-            console.log("✅ 使用者身份為 student，允許進入");
-
-          } catch (error) {
-            console.error("❌ 取得使用者角色失敗：", error);
-            alert("發生錯誤，請稍後再試");
-            window.location.href = "login.html";
+            await loadCourses();
+          } else {
+            if (loginLink) loginLink.style.display = "inline-block";
+            if (dropdown) dropdown.style.display = "none";
           }
-
-        } else {
-          if (loginLink) loginLink.style.display = "inline-block";
-          if (dropdown) dropdown.style.display = "none";
-        }
+        });
       });
-    });
 
     function logout() {
       firebase.auth().signOut()
@@ -352,12 +201,13 @@
     }
 
     function goToDashboard() {
-      const user = auth.currentUser;
+      const user = firebase.auth().currentUser;
       if (!user) {
         alert("請先登入");
         window.location.href = "login.html";
         return;
       }
+
       db.collection("users").doc(user.uid).get().then(doc => {
         const role = doc.data().role;
         if (role === "teacher") {
