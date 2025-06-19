@@ -110,6 +110,13 @@
   點擊灰色起點開始，依序連線，最後回到起點後按「完成」。<br>
   每條線中間不可穿過點。
 </div>
+<div id="patternOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh;
+	background:rgba(0,0,0,0.4); z-index:1000;">
+	<div id="patternImageBox" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+	background:white; padding:10px; border-radius:10px; box-shadow:0 0 20px rgba(0,0,0,0.3);">
+		<img id="patternImage" src="" alt="正確版型" style="max-width:90vw; max-height:70vh;">
+	</div>
+</div>
 
 <script>
 const grid = document.getElementById('grid');
@@ -142,13 +149,13 @@ for (let y = 0; y < rows; y++) {
 
 const answers = {
   "T-shirt": [
-    { title: "前片", answer: [5, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5] },
-    { title: "後片", answer: [5, 0 , 1, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5] },
-    { title: "袖片", answer: [2, 9, 23, 22, 21, 5, 2] }
+    { title: "前片", answer: [5, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5], image: "front.png" },
+    { title: "後片", answer: [5, 0 , 1, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5], image: "back.png" },
+    { title: "袖片", answer: [2, 9, 23, 22, 21, 5, 2], image: "sleeve.png" }
   ],
   "短褲": [
-    { title: "前片", answer: [0, 1, 2, 3, 8, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5, 0] },
-    { title: "後片", answer: [2, 3, 4, 9, 14, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 12, 7, 2] }
+    { title: "前片", answer: [0, 1, 2, 3, 8, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5, 0], image: "short-front.png" },
+    { title: "後片", answer: [2, 3, 4, 9, 14, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 12, 7, 2], image: "short-back.png" }
   ]
 };
 
@@ -216,7 +223,29 @@ function checkPattern() {
       resultBox.innerHTML = `✅ 所有版型完成！<br><button onclick="goToSewing()">前往縫線模擬</button>`;
     }
   } else {
-    resultBox.innerHTML = '❌ 路徑錯誤，請重試';
+		const resultBox = document.getElementById('resultBox');
+		resultBox.innerHTML = '❌ 路徑錯誤，請重試';
+		resultBox.style.display = 'block';
+
+		// 延遲一秒後顯示正確版型圖片
+		setTimeout(() => {
+			const overlay = document.getElementById('patternOverlay');
+			const img = document.getElementById('patternImage');
+
+			// 使用 image 欄位載入對應圖片
+			img.src = `images/${steps[currentStep].image}`;
+			overlay.style.display = 'block';
+
+			// 點擊遮罩即可關閉
+			overlay.onclick = () => {
+				overlay.style.display = 'none';
+			};
+
+			// 自動關閉 3 秒後（含前面 delay 1 秒，共 4 秒）
+			setTimeout(() => {
+				overlay.style.display = 'none';
+			}, 5000);
+		}, 800); // 延遲 1 秒
   }
   resultBox.style.display = 'block';
 }
