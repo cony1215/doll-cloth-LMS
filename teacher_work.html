@@ -6,22 +6,21 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script>
+    emailjs.init("UAq-F24jLtzUqcahI"); // 你的 Public Key
+  </script>
+
+
+
+
   <style>
-    body {
-      font-family: "Noto Sans TC", sans-serif;
-      background-color: #fffaf6;
-      padding: 30px;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 40px;
-    }
+    body { font-family: "Noto Sans TC", sans-serif; background-color: #fffaf6; padding: 30px; }
+    h2 { text-align: center; margin-bottom: 40px; }
     #worksContainer {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-      max-width: 1100px;
-      margin: auto;
+      gap: 20px; max-width: 1100px; margin: auto;
     }
     .work-card {
       background-color: #fff0e6;
@@ -34,60 +33,30 @@
       text-align: center;
     }
     .work-card img {
-      max-width: 100%;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 10px;
-      margin-top: 10px;
+      max-width: 100%; height: 160px; object-fit: cover;
+      border-radius: 10px; margin-top: 10px;
     }
-    .meta {
-      font-size: 0.8em;
-      color: #777;
-      margin-bottom: 8px;
-    }
-    .title {
-      font-weight: bold;
-      margin: 5px 0;
-    }
+    .meta { font-size: 0.8em; color: #777; margin-bottom: 8px; }
+    .title { font-weight: bold; margin: 5px 0; }
     .work-card a, .work-card button {
-      margin-top: 8px;
-      margin-right: 6px;
-      display: inline-block;
-      background-color: #ff9980;
-      color: white;
-      padding: 6px 10px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 0.9em;
-      border: none;
-      cursor: pointer;
+      margin-top: 8px; margin-right: 6px; display: inline-block;
+      background-color: #ff9980; color: white;
+      padding: 6px 10px; border-radius: 6px;
+      text-decoration: none; font-size: 0.9em; border: none; cursor: pointer;
     }
-    .work-card a:last-child {
-      background-color: #ffa87d;
-    }
-    .work-card button {
-      background-color: #e86868;
-    }
+    .work-card a:last-child { background-color: #ffa87d; }
+    .work-card button { background-color: #e86868; }
     .back-btn {
-      display: inline-block;
-      background-color: #b2866b;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      margin-top: 40px;
+      display: inline-block; background-color: #b2866b; color: white;
+      padding: 10px 20px; border-radius: 8px;
+      text-decoration: none; font-weight: bold; margin-top: 40px;
     }
-    .back-container {
-      text-align: center;
-      margin-top: 30px;
-    }
+    .back-container { text-align: center; margin-top: 30px; }
   </style>
 </head>
 <body>
   <h2>🧵 學生作品總覽</h2>
   <div id="worksContainer"></div>
-
   <div class="back-container">
     <a href="teacher_dashboard.html" class="back-btn">返回老師主頁</a>
   </div>
@@ -101,7 +70,6 @@
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
-
     const auth = firebase.auth();
     const db = firebase.firestore();
     const userEmailMap = {};
@@ -140,15 +108,27 @@
 
         const card = document.createElement("div");
         card.className = "work-card";
+        const createdAt = data.createdAt?.toDate().toLocaleString() || "無";
+        const statusText = data.status === "approved" ? "✅ 已通過" :
+                          data.status === "rejected" ? "❌ 已打回" : "⏳ 待審核";
+
         card.innerHTML = `
-          <div class="meta">👤 ${userEmailMap[userId]}<br>🕒 ${data.createdAt?.toDate().toLocaleString() || "無"}</div>
+          <div class="meta">👤 ${userEmailMap[userId]}<br>🕒 ${createdAt}</div>
           <div class="title">${data.title}</div>
           <p>${data.description || "（無說明）"}</p>
           <img src="${data.imageUrl}" alt="作品圖片">
+          <p><strong>審核狀態：</strong>${statusText}</p>
+          ${data.feedback ? `<p><strong>老師評語：</strong>${data.feedback}</p>` : ""}
           <div>
             <a href="${data.imageUrl}" target="_blank">🔍 查看原圖</a>
             <a href="${data.imageUrl}" download target="_blank">⬇️ 下載圖片</a>
             <button onclick="deleteWork('${workId}')">🗑️ 刪除作品</button>
+            <button onclick="approveWork('${workId}', this)">✅ 通過</button>
+            <button onclick="showRejectBox('${workId}', this)">❌ 打回</button>
+          </div>
+          <div class="reject-box" id="reject-${workId}" style="display:none; margin-top:10px;">
+            <textarea rows="3" style="width:100%;" placeholder="請輸入打回原因..."></textarea>
+            <button onclick="sendReject('${workId}')">送出打回</button>
           </div>
         `;
         container.appendChild(card);
@@ -157,7 +137,6 @@
 
     async function deleteWork(workId) {
       if (!confirm("你確定要刪除此作品嗎？此操作無法復原")) return;
-
       try {
         await db.collection("works").doc(workId).delete();
         alert("✅ 已刪除作品");
@@ -165,6 +144,66 @@
       } catch (err) {
         console.error("❌ 刪除失敗", err);
         alert("刪除作品時發生錯誤");
+      }
+    }
+
+    async function approveWork(workId, btn) {
+      try {
+        await db.collection("works").doc(workId).update({
+          status: "approved",
+          reviewedAt: firebase.firestore.Timestamp.now()
+        });
+        alert("✅ 已標記為通過");
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("⚠️ 通過更新失敗");
+      }
+    }
+
+    function showRejectBox(workId) {
+      document.getElementById(`reject-${workId}`).style.display = "block";
+    }
+
+    async function sendReject(workId) {
+      const box = document.getElementById(`reject-${workId}`);
+      const feedback = box.querySelector("textarea").value.trim();
+      if (!feedback) {
+        alert("請填寫打回原因");
+        return;
+      }
+
+      try {
+        await db.collection("works").doc(workId).update({
+          status: "rejected",
+          feedback,
+          reviewedAt: firebase.firestore.Timestamp.now()
+        });
+
+        const doc = await db.collection("works").doc(workId).get();
+        const data = doc.data();
+        const userDoc = await db.collection("users").doc(data.userId).get();
+        const studentEmail = userDoc.exists ? userDoc.data().email : null;
+
+        if (studentEmail) {
+          await emailjs.send('service_55y6b2i', 'template_kv60omb', {
+            email: studentEmail,                  // ✅ 這是你模板用的變數名稱
+            student_email: studentEmail,
+            title: data.title,
+            feedback: feedback,
+            imageUrl: data.imageUrl
+          }, 'UAq-F24jLtzUqcahI');
+
+
+          alert("❌ 已打回並寄出 email 通知學生");
+        } else {
+          alert("打回成功，但找不到學生 email");
+        }
+
+        location.reload();
+      } catch (err) {
+        console.error("打回錯誤", err);
+        alert("打回失敗，請檢查網路或 emailjs 設定");
       }
     }
   </script>

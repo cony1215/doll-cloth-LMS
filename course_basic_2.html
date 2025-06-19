@@ -167,6 +167,75 @@
       }
     }
 
+      document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const user = auth.currentUser;
+        if (!user) {
+          alert("請先登入後再上傳");
+          return;
+        }
+
+        const title = document.getElementById("title").value.trim();
+        const description = document.getElementById("description").value.trim();
+        const imageFile = document.getElementById("image").files[0];
+
+        if (!imageFile || !title) {
+          alert("請輸入作品名稱並選擇圖片");
+          return;
+        }
+
+        // ✅ 使用 Cloudinary 上傳圖片
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        formData.append("upload_preset", "demo_stu");
+
+        try {
+          const cloudRes = await fetch("https://api.cloudinary.com/v1_1/da77gowqh/image/upload", {
+            method: "POST",
+            body: formData
+          });
+
+          const cloudData = await cloudRes.json();
+          const imageUrl = cloudData.secure_url;
+
+          // ✅ 將結果寫入 Firebase Firestore
+          await db.collection("works").add({
+            userId: user.uid,
+            title,
+            description,
+            imageUrl,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: "pending"
+          });
+
+          alert("✅ 作品已成功上傳！");
+          document.getElementById("uploadForm").reset();
+          document.getElementById("previewImage").style.display = "none";
+
+        } catch (err) {
+          console.error("Cloudinary 上傳失敗", err);
+          alert("上傳圖片時發生錯誤，請稍後再試");
+        }
+  });
+
+  document.getElementById("image").addEventListener("change", function () {
+    const file = this.files[0];
+    const preview = document.getElementById("previewImage");
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.src = e.target.result;
+        preview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = "none";
+    }
+  });
+
+
     fetch("shared/navbar.html")
       .then(res => res.text())
       .then(html => {

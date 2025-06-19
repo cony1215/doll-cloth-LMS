@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>作業審核 - 教師端</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; background: #fff8f2; padding: 20px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; }
+    textarea { width: 100%; height: 60px; border: 1px solid #ccc; border-radius: 6px; margin-top: 10px; }
+    button { margin: 5px; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; }
+    .approve { background-color: #4caf50; color: white; }
+    .reject { background-color: #f44336; color: white; }
+  </style>
+</head>
+<body>
+  <h2>學生作業審核</h2>
+  <div id="submissionList"></div>
+
+  <script>
+    const firebaseConfig = {
+      // 替換成你的 Firebase 設定
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const submissionList = document.getElementById('submissionList');
+
+    function renderSubmission(doc) {
+      const data = doc.data();
+      const div = document.createElement('div');
+      div.classList.add('card');
+      div.innerHTML = `
+        <p><strong>學生ID:</strong> ${data.studentId}</p>
+        <p><strong>課程階段:</strong> ${data.stage}</p>
+        <img src="${data.imageUrl}" />
+        <div>
+          <button class="approve">通過</button>
+          <button class="reject">打回</button>
+          <div class="feedbackBox" style="display:none;">
+            <textarea placeholder="請輸入打回原因..."></textarea>
+            <button class="sendReject">送出打回</button>
+          </div>
+        </div>
+      `;
+
+      div.querySelector('.approve').onclick = () => {
+        db.collection('submissions').doc(doc.id).update({
+          status: 'approved',
+          reviewedAt: firebase.firestore.Timestamp.now()
+        });
+        alert('已通過');
+        div.remove();
+      };
+
+      div.querySelector('.reject').onclick = () => {
+        div.querySelector('.feedbackBox').style.display = 'block';
+      };
+
+      div.querySelector('.sendReject').onclick = () => {
+        const feedback = div.querySelector('textarea').value;
+        if (!feedback.trim()) {
+          alert('請填寫評語');
+          return;
+        }
+        db.collection('submissions').doc(doc.id).update({
+          status: 'rejected',
+          feedback,
+          reviewedAt: firebase.firestore.Timestamp.now()
+        });
+        alert('已打回，待發送email通知（下一步）');
+        div.remove();
+      };
+
+      submissionList.appendChild(div);
+    }
+
+    db.collection('submissions')
+      .where('status', '==', 'pending')
+      .get()
+      .then(snapshot => {
+        snapshot.forEach(doc => renderSubmission(doc));
+      });
+  </script>
+</body>
+</html>
