@@ -149,13 +149,13 @@ for (let y = 0; y < rows; y++) {
 
 const answers = {
   "T-shirt": [
-    { title: "前片", answer: [5, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5], image: "Images/front.png" },
-    { title: "後片", answer: [5, 0 , 1, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5], image: "Images/back.png" },
-    { title: "袖片", answer: [2, 9, 23, 22, 21, 5, 2], image: "Images/sleeve.png" }
+    { title: "前片", answer: [5, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5], image: "front.png" },
+    { title: "後片", answer: [5, 0 , 1, 2, 9, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5], image: "back.png" },
+    { title: "袖片", answer: [2, 9, 23, 22, 21, 5, 2], image: "sleeve.png" }
   ],
   "短褲": [
-    { title: "前片", answer: [0, 1, 2, 3, 8, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5, 0], image: "Images/short-front.png" },
-    { title: "後片", answer: [2, 3, 4, 9, 14, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 12, 7, 2], image: "Images/short-back.png" }
+    { title: "前片", answer: [0, 1, 2, 3, 8, 13, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 10, 5, 0], image: "short-front.png" },
+    { title: "後片", answer: [2, 3, 4, 9, 14, 19, 24, 29, 34, 33, 32, 31, 30, 25, 20, 15, 12, 7, 2], image: "short-back.png" }
   ]
 };
 
@@ -233,7 +233,7 @@ function checkPattern() {
 			const img = document.getElementById('patternImage');
 
 			// 使用 image 欄位載入對應圖片
-			img.src = `images/${steps[currentStep].image}`;
+			img.src = `Images/${steps[currentStep].image}`;
 			overlay.style.display = 'block';
 
 			// 點擊遮罩即可關閉
