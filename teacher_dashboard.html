@@ -171,8 +171,8 @@
         if (progressDiv.style.display === "none") {
           progressDiv.innerHTML = "<p style='margin-left:20px;'>載入中...</p>";
           progressDiv.style.display = "block";
-          const progressSnap = await db.collection("progress").where("userId", "==", doc.id).get();
 
+          const progressSnap = await db.collection("progress").where("userId", "==", doc.id).get();
 
           if (progressSnap.empty) {
             progressDiv.innerHTML = "<p style='margin-left:20px;'>尚未有進度紀錄。</p>";
@@ -185,7 +185,7 @@
             const item = document.createElement("div");
             item.className = "progress-card";
 
-            let courseTitle = d.course; // 預設顯示 course ID
+            let courseTitle = d.course;
             try {
               const courseDoc = await db.collection("courses").doc(d.course).get();
               if (courseDoc.exists) {
@@ -202,11 +202,11 @@
             `;
             progressDiv.appendChild(item);
           });
-
         } else {
           progressDiv.style.display = "none";
         }
       };
+
 
       wrapper.appendChild(studentDiv);
       wrapper.appendChild(progressDiv);
