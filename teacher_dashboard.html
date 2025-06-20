@@ -171,7 +171,8 @@
         if (progressDiv.style.display === "none") {
           progressDiv.innerHTML = "<p style='margin-left:20px;'>載入中...</p>";
           progressDiv.style.display = "block";
-          const progressSnap = await db.collection("progress").where("email", "==", data.email).get();
+          const progressSnap = await db.collection("progress").where("userId", "==", doc.id).get();
+
 
           if (progressSnap.empty) {
             progressDiv.innerHTML = "<p style='margin-left:20px;'>尚未有進度紀錄。</p>";
